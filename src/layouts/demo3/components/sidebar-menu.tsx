@@ -35,16 +35,16 @@ export function SidebarMenu() {
       path: '/',
       title: 'Dashboard',
     },
-    // {
-    //   icon: UserCircle,
-    //   path: '/public-profile/profiles/default',
-    //   title: 'Profile',
-    // },
-    // {
-    //   icon: Settings,
-    //   path: '/account/home/get-started',
-    //   title: 'Account',
-    // },
+    {
+      icon: UserCircle,
+      path: '/public-profile/profiles/default',
+      title: 'Profile',
+    },
+    {
+      icon: Settings,
+      path: '/account/home/get-started',
+      title: 'Account',
+    },
     // {
     //   icon: Users,
     //   path: '/network/get-started',

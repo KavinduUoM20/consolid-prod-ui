@@ -12,10 +12,10 @@ const mockAuth: AuthModel = {
 
 const mockUser: UserModel = {
   username: "demo",
-  email: "demo@kt.com",
+  email: "@masholdings.com",
   first_name: "Demo",
   last_name: "User",
-  fullname: "Demo User",
+  fullname: "Malaka Gunawardena",
   email_verified: true,
   occupation: "Developer",
   company_name: "Demo Company",

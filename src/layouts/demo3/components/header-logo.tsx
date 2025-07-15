@@ -61,7 +61,7 @@ export function HeaderLogo() {
             alt="logo"
           />
           <img
-            src={toAbsoluteUrl('/media/app/mini-logo-primary-dark.svg')}
+            src={toAbsoluteUrl('/media/app/favicon-16x16.png')}
             className="hidden dark:inline-block min-h-[24px]"
             alt="logo" 
           />
