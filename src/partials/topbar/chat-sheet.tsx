@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useRef } from 'react';
 import {
   Calendar,
   CheckCheck,
@@ -30,6 +30,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Sheet,
   SheetBody,
@@ -52,6 +53,25 @@ interface Message {
 
 export function ChatSheet({ trigger }: { trigger: ReactNode }) {
   const [emailInput, setEmailInput] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setSelectedFiles(prev => [...prev, ...files]);
+      // Here you would typically handle the file upload to your backend
+      console.log('Selected files:', files);
+    }
+    // Reset the input value to allow selecting the same file again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const messages: Message[] = [
     {
@@ -104,34 +124,43 @@ export function ChatSheet({ trigger }: { trigger: ReactNode }) {
   return (
     <Sheet>
       <SheetTrigger asChild>{trigger}</SheetTrigger>
-      <SheetContent className="p-0 gap-0 sm:w-[450px] sm:max-w-none inset-5 start-auto h-auto rounded-lg p-0 sm:max-w-none [&_[data-slot=sheet-close]]:top-4.5 [&_[data-slot=sheet-close]]:end-5">
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="image/*,.pdf,.doc,.docx,.txt,.zip,.rar"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+      <SheetContent className="p-0 gap-0 w-full sm:w-[450px] sm:max-w-none inset-5 start-auto h-auto rounded-lg [&_[data-slot=sheet-close]]:top-4.5 [&_[data-slot=sheet-close]]:end-5">
         <SheetHeader>
           <div className="flex items-center justify-between p-3 border-b border-border">
             <SheetTitle>Chat</SheetTitle>
           </div>
           <div className="border-b border-border p-3 shadow-xs">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <div className="w-11 h-11 rounded-full bg-accent/60 border border-border flex items-center justify-center">
+            <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <div className="w-11 h-11 rounded-full bg-accent/60 border border-border flex items-center justify-center flex-shrink-0">
                   <img
                     src={toAbsoluteUrl('/media/brand-logos/gitlab.svg')}
                     className="w-7 h-7"
                     alt=""
                   />
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <Link
                     to="#"
-                    className="text-sm font-semibold text-mono hover:text-blue-600"
+                    className="text-sm font-semibold text-mono hover:text-blue-600 block truncate"
                   >
                     HR Team
                   </Link>
-                  <span className="text-xs italic text-muted-foreground block">
+                  <span className="text-xs italic text-muted-foreground block truncate">
                     Jessy is typing...
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <AvatarGroup
                   size="size-8"
                   group={[
@@ -197,16 +226,18 @@ export function ChatSheet({ trigger }: { trigger: ReactNode }) {
             </div>
           </div>
         </SheetHeader>
-        <SheetBody className="scrollable-y-auto grow space-y-3.5">
-          {messages.map((message, index) =>
+        <SheetBody className="grow p-0">
+          <ScrollArea className="h-[calc(100vh-16rem)]">
+            <div className="space-y-3.5 p-3 sm:p-5">
+              {messages.map((message, index) =>
             message.out ? (
               <div
                 key={index}
-                className="flex items-end justify-end gap-3 px-5"
+                className="flex items-end justify-end gap-3"
               >
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1 max-w-[85%] sm:max-w-[75%]">
                   <div
-                    className="bg-primary text-primary-foreground text-sm font-medium p-3 rounded-lg shadow-xs"
+                    className="bg-primary text-primary-foreground text-sm font-medium p-3 rounded-lg shadow-xs break-words"
                     dangerouslySetInnerHTML={{ __html: message.text }}
                   />
                   <div className="flex items-center justify-end gap-1">
@@ -223,7 +254,7 @@ export function ChatSheet({ trigger }: { trigger: ReactNode }) {
                     />
                   </div>
                 </div>
-                <div className="relative">
+                <div className="relative flex-shrink-0">
                   <Avatar className="size-9">
                     <AvatarImage
                       src={toAbsoluteUrl('/media/avatars//300-2.png')}
@@ -237,14 +268,14 @@ export function ChatSheet({ trigger }: { trigger: ReactNode }) {
                 </div>
               </div>
             ) : message.in ? (
-              <div key={index} className="flex items-end gap-3 px-5">
-                <Avatar className="size-9">
+              <div key={index} className="flex items-end gap-3">
+                <Avatar className="size-9 flex-shrink-0">
                   <AvatarImage src={toAbsoluteUrl(message.avatar)} alt="" />
                   <AvatarFallback>CH</AvatarFallback>
                 </Avatar>
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1 max-w-[85%] sm:max-w-[75%]">
                   <div
-                    className="bg-accent/50 text-secondary-foreground text-sm font-medium p-3 rounded-lg shadow-xs"
+                    className="bg-accent/50 text-secondary-foreground text-sm font-medium p-3 rounded-lg shadow-xs break-words"
                     dangerouslySetInnerHTML={{ __html: message.text }}
                   />
                   <span className="text-xs text-muted-foreground">
@@ -252,52 +283,57 @@ export function ChatSheet({ trigger }: { trigger: ReactNode }) {
                   </span>
                 </div>
               </div>
-            ) : null,
+                          ) : null,
           )}
-        </SheetBody>
-        <SheetFooter className="block p-0 sm:space-x-0">
-          <div className="p-4 bg-accent/50 flex gap-2">
-            <Avatar className="size-9">
-              <AvatarImage
-                src={toAbsoluteUrl('/media/avatars//300-14.png')}
-                alt=""
-              />
-              <AvatarFallback>CH</AvatarFallback>
-              <AvatarIndicator className="-end-2 -bottom-2">
-                <AvatarStatus variant="online" className="size-2.5" />
-              </AvatarIndicator>
-            </Avatar>
-            <div className="flex-1 flex items-center justify-between gap-0.5">
-              <div className="flex flex-col">
-                <div className="inline-flex gap-0.5 text-sm">
-                  <Link
-                    to="#"
-                    className="font-semibold text-mono hover:text-primary"
-                  >
-                    Jane Perez
-                  </Link>
-                  <span className="text-muted-foreground">
-                    wants to join chat
-                  </span>
+              
+              {/* Join Request Section */}
+              <div className="p-3 sm:p-4 bg-accent/50 flex gap-2 border-t border-border">
+                <Avatar className="size-9 flex-shrink-0">
+                  <AvatarImage
+                    src={toAbsoluteUrl('/media/avatars//300-14.png')}
+                    alt=""
+                  />
+                  <AvatarFallback>CH</AvatarFallback>
+                  <AvatarIndicator className="-end-2 -bottom-2">
+                    <AvatarStatus variant="online" className="size-2.5" />
+                  </AvatarIndicator>
+                </Avatar>
+                <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <div className="inline-flex gap-0.5 text-sm flex-wrap">
+                      <Link
+                        to="#"
+                        className="font-semibold text-mono hover:text-primary truncate"
+                      >
+                        Jane Perez
+                      </Link>
+                      <span className="text-muted-foreground">
+                        wants to join chat
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground truncate">
+                      1 day ago • Design Team
+                    </span>
+                  </div>
+                  <div className="flex gap-1 sm:gap-2 flex-shrink-0">
+                    <Button size="sm" variant="outline" className="text-xs sm:text-sm">
+                      Decline
+                    </Button>
+                    <Button size="sm" variant="mono" className="text-xs sm:text-sm">
+                      Accept
+                    </Button>
+                  </div>
                 </div>
-                <span className="text-xs text-muted-foreground">
-                  1 day ago • Design Team
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline">
-                  Decline
-                </Button>
-                <Button size="sm" variant="mono">
-                  Accept
-                </Button>
               </div>
             </div>
-          </div>
-          <div className="p-5 flex items-center gap-2 relative">
+          </ScrollArea>
+        </SheetBody>
+        <SheetFooter className="block p-0 sm:space-x-0">
+          {/* Input Section - Fixed at bottom */}
+          <div className="p-3 sm:p-5 flex items-center gap-2 relative border-t border-border">
             <img
               src={toAbsoluteUrl('/media/avatars/300-2.png')}
-              className="w-8 h-8 rounded-full absolute left-7 top-1/2 -translate-y-1/2"
+              className="w-8 h-8 rounded-full absolute left-3 sm:left-7 top-1/2 -translate-y-1/2 flex-shrink-0"
               alt=""
             />
             <Input
@@ -305,13 +341,25 @@ export function ChatSheet({ trigger }: { trigger: ReactNode }) {
               value={emailInput}
               onChange={(e) => setEmailInput(e.target.value)}
               placeholder="Write a message..."
-              className="w-full ps-12 pe-24 py-4 h-auto"
+              className="w-full ps-11 sm:ps-12 pe-20 sm:pe-24 py-3 sm:py-4 h-auto"
             />
-            <div className="absolute end-7 top-1/2 -translate-y-1/2 flex gap-2">
-              <Button size="sm" variant="ghost" mode="icon">
+            <div className="absolute end-3 sm:end-7 top-1/2 -translate-y-1/2 flex gap-1 sm:gap-2">
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                mode="icon" 
+                className="h-8 w-8 sm:h-9 sm:w-9 relative"
+                onClick={handleFileUpload}
+                type="button"
+              >
                 <Upload className="size-4!" />
+                {selectedFiles.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                    {selectedFiles.length}
+                  </span>
+                )}
               </Button>
-              <Button size="sm" variant="mono">
+              <Button size="sm" variant="mono" className="h-8 px-2 sm:h-9 sm:px-3 text-xs sm:text-sm">
                 Send
               </Button>
             </div>
