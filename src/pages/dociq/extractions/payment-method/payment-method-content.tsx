@@ -1,7 +1,7 @@
 import { MoveLeft, SquareMousePointer } from 'lucide-react';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
-import { Order } from '../shipping-info/components/order';
+import { Extraction } from '../shipping-info/components/order';
 import { Payment } from './components/payment';
 
 export function PaymentMethodContent() {
@@ -26,7 +26,7 @@ export function PaymentMethodContent() {
 
       <div className="lg:col-span-1">
         <div className="space-y-5">
-          <Order />
+          <Extraction />
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@ import { MoveLeft, MoveRight } from 'lucide-react';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Info } from './components/info';
-import { Order } from './components/order';
+import { Extraction } from './components/order';
 
 export function ShippingInfoContent() {
   return (
@@ -28,7 +28,7 @@ export function ShippingInfoContent() {
 
       <div className="lg:col-span-1">
         <div className="space-y-5">
-          <Order />
+          <Extraction />
         </div>
       </div>
     </div>

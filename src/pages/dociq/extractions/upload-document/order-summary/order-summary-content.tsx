@@ -2,7 +2,7 @@ import { MoveRight } from 'lucide-react';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Card4 } from '../../components/common/card4';
-import { Order } from './components/order';
+import { Extraction } from './components/order';
 
 export function OrderSummaryContent() {
   return (
@@ -23,7 +23,7 @@ export function OrderSummaryContent() {
 
       <div className="col-span-1">
         <div className="space-y-5">
-          <Order />
+          <Extraction />
         </div>
       </div>
     </div>

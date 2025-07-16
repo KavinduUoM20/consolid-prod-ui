@@ -7,88 +7,63 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogBody, DialogClose } from '@/components/ui/dialog';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { addressSchema, AddressFormValues } from './forms';
-import { AddressDialog } from './address-dialog';
+import { templateSchema, TemplateFormValues } from './forms';
+import { TemplateDialog } from './template-dialog';
 import { Alert, AlertIcon, AlertTitle } from '@/components/ui/alert';
 import { RiCheckboxCircleFill } from '@remixicon/react';
 import { toast } from 'sonner';
 
-interface IInfoItem {
+interface ITemplateItem {
   default: boolean;
   title: string;
-  addressName: string;
-  name: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  address: string;
-  apartment?: string;
-  city: string;
-  country: string;
-  postalCode: string;
+  department: string;
+  fields: number;
+  description: string;
+  lastUsed: string;
+  status: string;
   badge?: boolean;
 }
 
 export function Info() {
-  const [items, setItems] = useState<IInfoItem[]>([
+  const [items, setItems] = useState<ITemplateItem[]>([
     {
       default: true,
-      title: 'Jeroen’s Home',
-      addressName: 'Home',
-      name: 'Jeroen',
-      lastName: 'van Dijk',
-      email: 'jeroen@vandijk.com',
-      phone: '+31612345678',
-      address: 'Keizersgracht 172',
-      apartment: '',
-      city: 'Amsterdam',
-      country: 'Netherlands',
-      postalCode: '1016 DW',
+      title: 'Raw Material Template',
+      department: 'Procurement',
+      fields: 6,
+      description: 'Template for extracting raw material purchase data from invoices',
+      lastUsed: '2 days ago',
+      status: 'Active',
       badge: true,
     },
     {
       default: false,
-      title: 'Sophie’s Office',
-      addressName: 'Office',
-      name: 'Sophie',
-      lastName: 'de Vries',
-      email: 'sophie@devries.com',
-      phone: '+31687654321',
-      address: 'Laan van Meerdervoort 88',
-      apartment: '',
-      city: 'The Hague',
-      country: 'Netherlands',
-      postalCode: '2517 AN',
+      title: 'Invoice Processing Template',
+      department: 'Finance',
+      fields: 8,
+      description: 'Standard template for processing vendor invoices',
+      lastUsed: '1 week ago',
+      status: 'Active',
       badge: false,
     },
     {
       default: false,
-      title: 'Jeroen’s Home',
-      addressName: 'Vacation',
-      name: 'Jeroen',
-      lastName: 'van Dijk',
-      email: 'jeroen@vandijk.com',
-      phone: '+31612345678',
-      address: 'Keizersgracht 172',
-      apartment: '',
-      city: 'Amsterdam',
-      country: 'Netherlands',
-      postalCode: '1016 DW',
+      title: 'Expense Report Template',
+      department: 'HR',
+      fields: 4,
+      description: 'Template for employee expense report processing',
+      lastUsed: '3 days ago',
+      status: 'Draft',
       badge: false,
     },
     {
       default: false,
-      title: 'Emma’s Apartment',
-      addressName: 'Apartment',
-      name: 'Emma',
-      lastName: 'van den Berg',
-      email: 'emma@vandenberg.com',
-      phone: '+31623456789',
-      address: 'Vondelstreet 45',
-      apartment: 'Apt 2',
-      city: 'Amsterdam',
-      country: 'Netherlands',
-      postalCode: '1054 GJ',
+      title: 'Contract Analysis Template',
+      department: 'Legal',
+      fields: 12,
+      description: 'Template for extracting key terms from legal contracts',
+      lastUsed: '2 weeks ago',
+      status: 'Active',
       badge: false,
     },
   ]);
@@ -98,19 +73,15 @@ export function Info() {
   const [removeOpen, setRemoveOpen] = useState<number|null>(null); 
 
   // react-hook-form for editing
-  const form = useForm<AddressFormValues>({
-    resolver: zodResolver(addressSchema),
+  const form = useForm<TemplateFormValues>({
+    resolver: zodResolver(templateSchema),
     defaultValues: {
-      addressName: '',
-      name: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      address: '',
-      apartment: '',
-      city: '',
-      country: '',
-      postalCode: '',
+      title: '',
+      department: '',
+      fields: 0,
+      description: '',
+      lastUsed: '',
+      status: '',
     },
     mode: 'onChange',
   });
@@ -120,31 +91,26 @@ export function Info() {
     if (editOpen !== null) {
       const item = items[editOpen];
       form.reset({
-        addressName: item?.addressName || '',
-        name: item?.name || '',
-        lastName: item?.lastName || '',
-        email: item?.email || '',
-        phone: item?.phone || '',
-        address: item?.address || '',
-        apartment: item?.apartment || '',
-        city: item?.city || '',
-        country: item?.country || '',
-        postalCode: item?.postalCode || '',
+        title: item?.title || '',
+        department: item?.department || '',
+        fields: item?.fields || 0,
+        description: item?.description || '',
+        lastUsed: item?.lastUsed || '',
+        status: item?.status || '',
       });
     }
   }, [editOpen, items, form]);
 
 
   // Handle edit submit
-  function handleEditSubmit(data: AddressFormValues) {
+  function handleEditSubmit(data: TemplateFormValues) {
     if (editOpen === null) return;
-    setItems((prev: IInfoItem[]) =>
-      prev.map((item: IInfoItem, i: number) =>
+    setItems((prev: ITemplateItem[]) =>
+      prev.map((item: ITemplateItem, i: number) =>
         i === editOpen
           ? {
               ...item,
               ...data,
-              title: data.addressName,
             }
           : item
       )
@@ -152,48 +118,52 @@ export function Info() {
     setEditOpen(null);
   }
 
-  // Remove address
+  // Remove template
   function handleRemove(idx: number) {
-    setItems((prev: IInfoItem[]) => prev.filter((_, i: number) => i !== idx));
+    setItems((prev: ITemplateItem[]) => prev.filter((_, i: number) => i !== idx));
     setRemoveOpen(null);
   };
 
-  const renderItem = (item: IInfoItem, index: number) => (
+  const renderItem = (item: ITemplateItem, index: number) => (
     <Card key={index}>
       <CardHeader className="px-5">
         <CardTitle>{item.title}</CardTitle>
         {item.default && (
           <Badge variant="success" appearance="outline">
-            Ship here
+            Default Template
           </Badge>
         )}
       </CardHeader>
 
       <CardContent className="px-5 space-y-4">
         <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-semibold text-mono mb-1.5">
-            {item.name} {item.lastName}
-          </span>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-mono">
+              Department: {item.department}
+            </span>
+            <span className="text-sm font-medium text-mono">
+              Fields: {item.fields}
+            </span>
+          </div>
 
           <div className="flex flex-col gap-2 text-sm font-normal text-mono">
-            <span>{item.postalCode}{item.address}</span>
-            <span>{item.city}</span>
-            <span>{item.country}</span>
-            <span>Phone Number: {item.phone}</span>
+            <span className="text-secondary-foreground">{item.description}</span>
+            <span>Last Used: {item.lastUsed}</span>
+            <span>Status: {item.status}</span>
           </div>
         </div>
 
         <div className="flex justify-between items-center min-h-8.5">
           <div className="flex items-center gap-5">
             {/* Edit Dialog */}
-            <AddressDialog
+            <TemplateDialog
               open={editOpen === index}
               onOpenChange={val => setEditOpen(val ? index : null)}
               initialValues={item}
               onSubmit={handleEditSubmit}
-              title="Edit Address"
-              description="Update the address details below."
-              submitLabel="Update Address"
+              title="Edit Template"
+              description="Update the template details below."
+              submitLabel="Update Template"
               trigger={
                 <Button mode="link" underlined="dashed">
                   Edit
@@ -210,10 +180,10 @@ export function Info() {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Remove Shipping Address</DialogTitle>
+                  <DialogTitle>Remove Template</DialogTitle>
                 </DialogHeader>
                 <DialogBody className="text-sm">
-                  Are you sure you want to remove this shipping address? This action cannot be undone.
+                  Are you sure you want to remove this template? This action cannot be undone.
                 </DialogBody>
                 <DialogFooter>
                   <Button variant="destructive" onClick={() => handleRemove(index)}>
@@ -229,7 +199,7 @@ export function Info() {
 
           {item.default === false && (
             <Button size="sm" variant="outline" onClick={() => handleSelect(index)}>
-              Select Address
+              Select Template
             </Button>
           )}
 
@@ -238,7 +208,7 @@ export function Info() {
     </Card>
   );
 
-  // Handle Select Address
+  // Handle Select Template
   const handleSelect = (idx: number) => {
     setItems(prev => prev.map((item, i) => ({
       ...item,
@@ -255,7 +225,7 @@ export function Info() {
           <AlertIcon>
             <RiCheckboxCircleFill />
           </AlertIcon>
-          <AlertTitle>Address selected!</AlertTitle>
+          <AlertTitle>Template selected!</AlertTitle>
         </Alert>
       ),
       {

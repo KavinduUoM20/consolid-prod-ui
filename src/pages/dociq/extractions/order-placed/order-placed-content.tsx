@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Card4 } from '../../components/common/card4';
-import { Order } from '../upload-document/components/order';
+import { Extraction } from '../upload-document/components/order';
 import { Info } from './components/info';
 import { Payment } from './components/payment';
 
@@ -66,7 +66,7 @@ export function OrderPlacedContent() {
 
       <div className="lg:col-span-1">
         <div className="space-y-5">
-          <Order />
+          <Extraction />
         </div>
       </div>
     </div>

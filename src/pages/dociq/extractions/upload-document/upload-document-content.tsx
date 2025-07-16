@@ -1,15 +1,22 @@
 import { MoveRight } from 'lucide-react';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
-import { Card4 } from '../../components/common/card4';
-import { Order } from './components/order';
+import { FileUploader } from '../../components/common/file-uploader';
+import { Extraction } from './components/order';
 
 export function UploadDocumentContent() {
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 lg:gap-9 mb-5 lg:mb-10">
       <div className="col-span-2 space-y-5">
         <div className="grid sm:grid-cols-1 gap-5">
-          <Card4 limit={4} />
+          <FileUploader 
+            multiple={true}
+            acceptedTypes={['.pdf', '.xlsx', '.xls', '.doc', '.docx', '.jpg', '.jpeg', '.png']}
+            onFileSelect={(files) => {
+              console.log('Selected files:', files);
+              // Handle file selection here
+            }}
+          />
         </div>
         <div className="flex justify-end items-center flex-wrap gap-3">
           <Button variant="outline">Cancel</Button>
@@ -23,7 +30,7 @@ export function UploadDocumentContent() {
 
       <div className="col-span-1">
         <div className="space-y-5">
-          <Order />
+          <Extraction />
         </div>
       </div>
     </div>
