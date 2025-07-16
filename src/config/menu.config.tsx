@@ -402,7 +402,7 @@ export const MENU_SIDEBAR: MenuConfig = [
           title: 'Extractions',
           children: [
             { title: 'Upload Document', path: '/dociq/extractions/upload-document' },
-            { title: 'Shipping Info', path: '/dociq/extractions/shipping-info' },
+            { title: 'Select Template', path: '/dociq/extractions/select-template' },
             { title: 'Payment Method', path: '/dociq/extractions/payment-method' },
             { title: 'Order Placed', path: '/dociq/extractions/order-placed' },
           ],

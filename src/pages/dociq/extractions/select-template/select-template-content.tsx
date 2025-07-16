@@ -1,25 +1,27 @@
-import { MoveLeft, SquareMousePointer } from 'lucide-react';
+import { MoveLeft, MoveRight } from 'lucide-react';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
-import { Extraction } from '../select-template/components/order';
-import { Payment } from './components/payment';
+import { Info } from './components/info';
+import { Extraction } from './components/order';
 
-export function PaymentMethodContent() {
+export function SelectTemplateContent() {
   return (
     <div className="grid xl:grid-cols-3 gap-5 lg:gap-9 mb-5 lg:mb-10">
       <div className="lg:col-span-2 space-y-5">
         <div className="grid sm:grid-cols-2 gap-5">
-          <Payment />
+          <Info />
         </div>
         <div className="flex justify-end items-center flex-wrap gap-3">
           <Button variant="outline">
             <MoveLeft className="text-base" />
-            <Link to="/dociq/extractions/select-template">Select Template</Link>
+            <Link to="/dociq/extractions/upload-document">Upload Document</Link>
           </Button>
 
           <Button>
-            <Link to="/dociq/extractions/order-placed">Place Order</Link>
-            <SquareMousePointer className="text-base" />
+            <Link to="/dociq/extractions/payment-method">
+              Payment Method
+            </Link>
+            <MoveRight className="text-base" />
           </Button>
         </div>
       </div>
@@ -31,4 +33,4 @@ export function PaymentMethodContent() {
       </div>
     </div>
   );
-}
+} 

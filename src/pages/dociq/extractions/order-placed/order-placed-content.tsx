@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Card4 } from '../../components/common/card4';
-import { Extraction } from '../upload-document/components/order';
+import { Extraction } from '../select-template/components/order';
 import { Info } from './components/info';
 import { Payment } from './components/payment';
 

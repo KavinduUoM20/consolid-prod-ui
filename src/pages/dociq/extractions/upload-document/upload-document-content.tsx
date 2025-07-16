@@ -22,7 +22,7 @@ export function UploadDocumentContent() {
           <Button variant="outline">Cancel</Button>
 
           <Button>
-            <Link to="/dociq/extractions/shipping-info">Shipping Info</Link>
+            <Link to="/dociq/extractions/select-template">Select Template</Link>
             <MoveRight className="text-base" />
           </Button>
         </div>

@@ -103,7 +103,7 @@ import {
 } from '@/pages/dociq';
 import {
   UploadDocumentPage as DociqUploadDocumentPage,
-  ShippingInfoPage as DociqShippingInfoPage,
+  SelectTemplatePage as DociqSelectTemplatePage,
   PaymentMethodPage as DociqPaymentMethodPage,
   OrderPlacedPage as DociqOrderPlacedPage,
 } from '@/pages/dociq/extractions';
@@ -398,8 +398,8 @@ export function AppRoutingSetup() {
             element={<DociqUploadDocumentPage />}
           />
           <Route
-            path="/dociq/extractions/shipping-info"
-            element={<DociqShippingInfoPage />}
+            path="/dociq/extractions/select-template"
+            element={<DociqSelectTemplatePage />}
           />
           <Route
             path="/dociq/extractions/payment-method"
