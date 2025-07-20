@@ -21,4 +21,4 @@ export function Info() {
       </CardContent>
     </Card>
   );
-}
+} 

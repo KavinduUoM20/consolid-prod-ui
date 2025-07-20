@@ -12,6 +12,7 @@ import { TemplateDialog } from './template-dialog';
 import { Alert, AlertIcon, AlertTitle } from '@/components/ui/alert';
 import { RiCheckboxCircleFill } from '@remixicon/react';
 import { toast } from 'sonner';
+import { useTemplateContext, TemplateDetails } from '../../context/template-context';
 
 interface ITemplateItem {
   default: boolean;
@@ -25,6 +26,8 @@ interface ITemplateItem {
 }
 
 export function Info() {
+  const { selectedTemplate, setSelectedTemplate } = useTemplateContext();
+  
   const [items, setItems] = useState<ITemplateItem[]>([
     {
       default: true,
@@ -130,7 +133,7 @@ export function Info() {
         <CardTitle>{item.title}</CardTitle>
         {item.default && (
           <Badge variant="success" appearance="outline">
-            Default Template
+            Selected Template
           </Badge>
         )}
       </CardHeader>
@@ -210,11 +213,27 @@ export function Info() {
 
   // Handle Select Template
   const handleSelect = (idx: number) => {
+    const selectedItem = items[idx];
+    
+    // Update items state
     setItems(prev => prev.map((item, i) => ({
       ...item,
       default: i === idx,
       badge: i === idx,
     })));
+
+    // Save selected template to localStorage
+    const templateDetails: TemplateDetails = {
+      title: selectedItem.title,
+      department: selectedItem.department,
+      fields: selectedItem.fields,
+      description: selectedItem.description,
+      lastUsed: selectedItem.lastUsed,
+      status: selectedItem.status,
+      isDefault: true,
+    };
+    setSelectedTemplate(templateDetails);
+
     toast.custom(
       (t) => (
         <Alert

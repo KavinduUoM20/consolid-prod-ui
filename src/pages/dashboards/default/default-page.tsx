@@ -31,6 +31,9 @@ const DefaultPage = () => {
   } else if (settings?.layout === 'demo10') {
     return <Demo3Page />;
   }
+  
+  // Default fallback
+  return <Demo3Page />;
 };
 
 export { DefaultPage };

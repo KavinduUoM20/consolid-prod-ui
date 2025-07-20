@@ -2,15 +2,13 @@ import { MoveLeft, SquareMousePointer } from 'lucide-react';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Extraction } from '../select-template/components/order';
-import { Payment } from './components/payment';
+import { DocumentProcessor } from './components/document-processor';
 
-export function PaymentMethodContent() {
+export function ProcessExtractionContent() {
   return (
     <div className="grid xl:grid-cols-3 gap-5 lg:gap-9 mb-5 lg:mb-10">
       <div className="lg:col-span-2 space-y-5">
-        <div className="grid sm:grid-cols-2 gap-5">
-          <Payment />
-        </div>
+        <DocumentProcessor />
         <div className="flex justify-end items-center flex-wrap gap-3">
           <Button variant="outline">
             <MoveLeft className="text-base" />
@@ -18,7 +16,7 @@ export function PaymentMethodContent() {
           </Button>
 
           <Button>
-            <Link to="/dociq/extractions/order-placed">Place Order</Link>
+            <Link to="/dociq/extractions/extraction-results">Complete Extraction</Link>
             <SquareMousePointer className="text-base" />
           </Button>
         </div>
@@ -26,9 +24,9 @@ export function PaymentMethodContent() {
 
       <div className="lg:col-span-1">
         <div className="space-y-5">
-          <Extraction />
+          <Extraction step="process-extraction" />
         </div>
       </div>
     </div>
   );
-}
+} 

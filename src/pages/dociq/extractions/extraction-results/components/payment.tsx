@@ -25,4 +25,4 @@ export function Payment() {
       </CardContent>
     </Card>
   );
-}
+} 

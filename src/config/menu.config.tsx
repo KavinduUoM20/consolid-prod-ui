@@ -403,8 +403,8 @@ export const MENU_SIDEBAR: MenuConfig = [
           children: [
             { title: 'Upload Document', path: '/dociq/extractions/upload-document' },
             { title: 'Select Template', path: '/dociq/extractions/select-template' },
-            { title: 'Payment Method', path: '/dociq/extractions/payment-method' },
-            { title: 'Order Placed', path: '/dociq/extractions/order-placed' },
+            { title: 'Process Extraction', path: '/dociq/extractions/process-extraction' },
+            { title: 'Extraction Results', path: '/dociq/extractions/extraction-results' },
           ],
         },
       ],

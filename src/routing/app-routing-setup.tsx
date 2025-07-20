@@ -96,17 +96,14 @@ import {
 import {
   StoreClientPage as DociqHomePage,
   MyOrdersPage as DociqMyOrdersPage,
-  SearchResultsGridPage as DociqSearchResultsGridPage,
-  SearchResultsListPage as DociqSearchResultsListPage,
-  ProductDetailsPage as DociqProductDetailsPage,
-  WishlistPage as DociqWishlistPage,
-} from '@/pages/dociq';
+} from '@/pages/store-client';
 import {
   UploadDocumentPage as DociqUploadDocumentPage,
   SelectTemplatePage as DociqSelectTemplatePage,
-  PaymentMethodPage as DociqPaymentMethodPage,
-  OrderPlacedPage as DociqOrderPlacedPage,
+  ProcessExtractionPage as DociqProcessExtractionPage,
+  ExtractionResultsPage as DociqExtractionResultsPage,
 } from '@/pages/dociq/extractions';
+import { ExtractionLayout } from '@/pages/dociq/extractions/extraction-layout';
 
 import { Navigate, Route, Routes } from 'react-router';
 
@@ -395,19 +392,35 @@ export function AppRoutingSetup() {
           <Route path="/dociq/my-orders" element={<DociqMyOrdersPage />} />
           <Route
             path="/dociq/extractions/upload-document"
-            element={<DociqUploadDocumentPage />}
+            element={
+              <ExtractionLayout>
+                <DociqUploadDocumentPage />
+              </ExtractionLayout>
+            }
           />
           <Route
             path="/dociq/extractions/select-template"
-            element={<DociqSelectTemplatePage />}
+            element={
+              <ExtractionLayout>
+                <DociqSelectTemplatePage />
+              </ExtractionLayout>
+            }
           />
           <Route
-            path="/dociq/extractions/payment-method"
-            element={<DociqPaymentMethodPage />}
+            path="/dociq/extractions/process-extraction"
+            element={
+              <ExtractionLayout>
+                <DociqProcessExtractionPage />
+              </ExtractionLayout>
+            }
           />
           <Route
-            path="/dociq/extractions/order-placed"
-            element={<DociqOrderPlacedPage />}
+            path="/dociq/extractions/extraction-results"
+            element={
+              <ExtractionLayout>
+                <DociqExtractionResultsPage />
+              </ExtractionLayout>
+            }
           />
           <Route path="/store-admin/dashboard" element={<DashboardPage />} />
           <Route

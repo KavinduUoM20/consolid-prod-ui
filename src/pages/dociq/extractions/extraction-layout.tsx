@@ -1,0 +1,17 @@
+import { ReactNode } from 'react';
+import { TemplateProvider } from './context/template-context';
+import { ProcessingProvider } from './context/processing-context';
+
+interface ExtractionLayoutProps {
+  children: ReactNode;
+}
+
+export function ExtractionLayout({ children }: ExtractionLayoutProps) {
+  return (
+    <TemplateProvider>
+      <ProcessingProvider>
+        {children}
+      </ProcessingProvider>
+    </TemplateProvider>
+  );
+} 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Upload, File, X } from 'lucide-react';
@@ -10,15 +10,23 @@ interface FileUploaderProps {
   onFileSelect?: (files: File[]) => void;
   multiple?: boolean;
   acceptedTypes?: string[];
+  selectedFiles?: File[];
+  onSelectedFilesChange?: (files: File[]) => void;
 }
 
 export function FileUploader({ 
   onFileSelect, 
   multiple = false, 
-  acceptedTypes = ['.pdf', '.xlsx', '.xls', '.doc', '.docx', '.jpg', '.jpeg', '.png'] 
+  acceptedTypes = ['.pdf', '.xlsx', '.xls', '.doc', '.docx', '.jpg', '.jpeg', '.png'],
+  selectedFiles: externalSelectedFiles,
+  onSelectedFilesChange
 }: FileUploaderProps) {
   const [isDragOver, setIsDragOver] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [internalSelectedFiles, setInternalSelectedFiles] = useState<File[]>([]);
+  
+  // Use external state if provided, otherwise use internal state
+  const selectedFiles = externalSelectedFiles !== undefined ? externalSelectedFiles : internalSelectedFiles;
+  const setSelectedFiles = onSelectedFilesChange || setInternalSelectedFiles;
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -36,22 +44,26 @@ export function FileUploader({
     
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
-      setSelectedFiles(prev => multiple ? [...prev, ...files] : files);
-      onFileSelect?.(files);
+      const newFiles = multiple ? [...selectedFiles, ...files] : files;
+      setSelectedFiles(newFiles);
+      onFileSelect?.(newFiles);
     }
-  }, [multiple, onFileSelect]);
+  }, [multiple, onFileSelect, selectedFiles, setSelectedFiles]);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
-      setSelectedFiles(prev => multiple ? [...prev, ...files] : files);
-      onFileSelect?.(files);
+      const newFiles = multiple ? [...selectedFiles, ...files] : files;
+      setSelectedFiles(newFiles);
+      onFileSelect?.(newFiles);
     }
-  }, [multiple, onFileSelect]);
+  }, [multiple, onFileSelect, selectedFiles, setSelectedFiles]);
 
   const removeFile = useCallback((index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
-  }, []);
+    const newFiles = selectedFiles.filter((_, i) => i !== index);
+    setSelectedFiles(newFiles);
+    onFileSelect?.(newFiles);
+  }, [onFileSelect, selectedFiles, setSelectedFiles]);
 
   const getFileIcon = (fileName: string) => {
     const extension = fileName.split('.').pop()?.toLowerCase();
@@ -111,7 +123,7 @@ export function FileUploader({
 
               <div className="flex flex-wrap gap-2 justify-center">
                 {acceptedTypes.map((type) => (
-                  <Badge key={type} variant="outline" className="text-xs">
+                  <Badge key={type} variant="secondary" appearance="outline" className="text-xs">
                     {type.toUpperCase()}
                   </Badge>
                 ))}

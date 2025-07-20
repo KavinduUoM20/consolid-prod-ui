@@ -6,39 +6,33 @@ import {
   ToolbarHeading,
   ToolbarPageTitle,
 } from '@/partials/common/toolbar';
-import { Captions } from 'lucide-react';
+import { WalletCards } from 'lucide-react';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/common/container';
-import { OrderPlacedContent } from '.';
+import { ProcessExtractionContent } from '.';
 import { Steps } from '../steps';
 
-export function OrderPlacedPage() {
+export function ProcessExtractionPage() {
   return (
     <Fragment>
-      <Steps currentStep={3} />
+      <Steps currentStep={2} />
       <Container>
         <Toolbar>
           <ToolbarHeading>
             <ToolbarPageTitle />
-            <ToolbarDescription>
-              Your purchase has been successfully completed
-            </ToolbarDescription>
+            <ToolbarDescription>Process document extraction with AI</ToolbarDescription>
           </ToolbarHeading>
           <ToolbarActions>
             <Button variant="outline">
-              <Captions />
-              <Link to="/store-client/my-orders">My Orders</Link>
-            </Button>
-            <Button>
-              <Captions />
-              <Link to="/store-client/my-orders">Continue Shopping</Link>
+              <WalletCards />
+              <Link to="#">View History</Link>
             </Button>
           </ToolbarActions>
         </Toolbar>
       </Container>
       <Container>
-        <OrderPlacedContent />
+        <ProcessExtractionContent />
       </Container>
     </Fragment>
   );
