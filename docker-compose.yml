@@ -1,0 +1,21 @@
+services:
+  frontend:
+    build: .
+    container_name: consolid-prod-ui
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=production
+      - VITE_APP_NAME=${VITE_APP_NAME}
+      - VITE_APP_VERSION=${VITE_APP_VERSION}
+      - VITE_APP_BASE_LAYOUT_CONFIG_KEY=${VITE_APP_BASE_LAYOUT_CONFIG_KEY}
+      - VITE_APP_API_URL=${VITE_APP_API_URL}
+      - VITE_APP_THEME_NAME=${VITE_APP_THEME_NAME}
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+      - VITE_SUPABASE_SERVICE_ROLE_KEY=${VITE_SUPABASE_SERVICE_ROLE_KEY}
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped 

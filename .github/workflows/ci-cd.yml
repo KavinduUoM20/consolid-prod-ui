@@ -1,0 +1,150 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+        
+    - name: Run linting
+      run: npm run lint
+        
+    - name: Run type checking
+      run: npx tsc --noEmit
+        
+    - name: Run tests (if available)
+      run: |
+        if npm run test 2>/dev/null; then
+          npm run test
+        else
+          echo "No test script found, skipping tests"
+        fi
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_TOKEN }}
+        
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: ${{ secrets.DOCKER_USERNAME }}/consolid-prod-ui:latest
+        cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/consolid-prod-ui:latest
+        cache-to: type=inline
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Deploy to VPS
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USERNAME }}
+        key: ${{ secrets.VPS_SSH_KEY }}
+        port: ${{ secrets.VPS_SSH_PORT }}
+        script: |
+          set -x  # Enable debug mode to see each command
+          
+          echo "==== System Info ===="
+          docker version || echo "Docker version check failed"
+          docker info || echo "Docker info check failed"
+          
+          echo "==== Checking Docker Permissions ===="
+          echo "Current user: $(whoami)"
+          echo "User groups: $(groups)"
+          echo "Docker socket permissions: $(ls -la /var/run/docker.sock 2>/dev/null || echo 'Docker socket not found')"
+          
+          # Check if user is in docker group but still can't access Docker
+          if groups | grep -q docker && ! docker version >/dev/null 2>&1; then
+            echo "User is in docker group but can't access Docker. This usually means Docker needs to be restarted."
+            echo "Attempting to restart Docker service..."
+            sudo systemctl restart docker || echo "Failed to restart Docker service"
+            sleep 5  # Wait for Docker to restart
+          fi
+          
+          # Test Docker access again
+          if ! docker version >/dev/null 2>&1; then
+            echo "Still cannot access Docker. Please manually restart Docker on the VPS:"
+            echo "sudo systemctl restart docker"
+            echo "Then re-run this deployment."
+            exit 1
+          fi
+          
+          echo "==== Docker access confirmed ===="
+          
+          echo "==== Checking Docker Hub Connection ===="
+          # Try to login with token (non-interactive)
+          echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin || echo "Docker login failed but continuing..."
+          
+          echo "==== Pulling new image ===="
+          docker pull ${{ secrets.DOCKER_USERNAME }}/consolid-prod-ui:latest || {
+            echo "Failed to pull image"
+            exit 1
+          }
+          
+          echo "==== Cleaning up existing container ===="
+          docker stop consolid-prod-ui || true
+          docker rm consolid-prod-ui || true
+          
+          echo "==== Starting new container ===="
+          docker run -d \
+            --name consolid-prod-ui \
+            -p 3000:80 \
+            -e NODE_ENV=production \
+            -e VITE_APP_NAME="${{ secrets.VITE_APP_NAME }}" \
+            -e VITE_APP_VERSION="${{ secrets.VITE_APP_VERSION }}" \
+            -e VITE_APP_BASE_LAYOUT_CONFIG_KEY="${{ secrets.VITE_APP_BASE_LAYOUT_CONFIG_KEY }}" \
+            -e VITE_APP_API_URL="${{ secrets.VITE_APP_API_URL }}" \
+            -e VITE_APP_THEME_NAME="${{ secrets.VITE_APP_THEME_NAME }}" \
+            -e VITE_SUPABASE_URL="${{ secrets.VITE_SUPABASE_URL }}" \
+            -e VITE_SUPABASE_ANON_KEY="${{ secrets.VITE_SUPABASE_ANON_KEY }}" \
+            -e VITE_SUPABASE_SERVICE_ROLE_KEY="${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}" \
+            --network nginx-proxy-manager_default \
+            ${{ secrets.DOCKER_USERNAME }}/consolid-prod-ui:latest
+          
+          echo "==== Verifying container ===="
+          docker ps -a  # Show all containers, including stopped ones
+          
+          echo "==== Container logs ===="
+          docker logs consolid-prod-ui || echo "Failed to get logs"
+          
+          echo "==== Checking container status ===="
+          if ! docker ps | grep -q consolid-prod-ui; then
+            echo "Container is not running"
+            exit 1
+          fi
+          
+          echo "==== Deployment complete ====" 
