@@ -61,6 +61,15 @@ jobs:
         tags: ${{ secrets.DOCKER_USERNAME }}/consolid-prod-ui:latest
         cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/consolid-prod-ui:latest
         cache-to: type=inline
+        build-args: |
+          VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_APP_API_URL=${{ secrets.VITE_APP_API_URL }}
+          VITE_APP_NAME=${{ secrets.VITE_APP_NAME }}
+          VITE_APP_VERSION=${{ secrets.VITE_APP_VERSION }}
+          VITE_APP_BASE_LAYOUT_CONFIG_KEY=${{ secrets.VITE_APP_BASE_LAYOUT_CONFIG_KEY }}
+          VITE_APP_THEME_NAME=${{ secrets.VITE_APP_THEME_NAME }}
 
   deploy:
     needs: build-and-push
