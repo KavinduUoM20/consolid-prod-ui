@@ -1,20 +1,44 @@
 import { MoveRight } from 'lucide-react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { FileUploader } from '../../components/common/file-uploader';
 import { Extraction } from '../select-template/components/order';
 import { extractDocumentDetails } from './utils/document-utils';
 import { useDocumentStorage } from '../hooks/use-document-storage';
-import { useEffect, useState } from 'react';
+import { useDocumentUpload } from '../hooks/use-document-upload';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 export function UploadDocumentContent() {
   const { documentDetails, setDocumentDetails } = useDocumentStorage();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const { uploadDocument, isUploading } = useDocumentUpload();
+  const navigate = useNavigate();
 
   const handleFileSelect = (files: File[]) => {
     console.log('Selected files:', files);
     const details = extractDocumentDetails(files);
     setDocumentDetails(details);
+  };
+
+  const handleSelectTemplate = async () => {
+    if (selectedFiles.length === 0) {
+      toast.error('Please select a document to upload');
+      return;
+    }
+
+    const result = await uploadDocument(selectedFiles[0]);
+
+    if (result.success) {
+      // Show success message
+      toast.success('Document uploaded successfully!');
+      
+      // Navigate to select template page
+      navigate('/dociq/extractions/select-template');
+    } else {
+      // Show error message
+      toast.error(result.error || 'Failed to upload document');
+    }
   };
 
   return (
@@ -34,8 +58,11 @@ export function UploadDocumentContent() {
             <Link to="/dociq/home">Cancel</Link>
           </Button>
 
-          <Button>
-            <Link to="/dociq/extractions/select-template">Select Template</Link>
+          <Button 
+            onClick={handleSelectTemplate}
+            disabled={isUploading || selectedFiles.length === 0}
+          >
+            {isUploading ? 'Uploading...' : 'Select Template'}
             <MoveRight className="text-base" />
           </Button>
         </div>
