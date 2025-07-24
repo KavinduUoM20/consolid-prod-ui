@@ -1,4 +1,4 @@
-import { DocumentDetails } from '../components/order';
+import { DocumentDetails } from '../../types/extraction-types';
 
 export const getDocumentType = (fileName: string): string => {
   const extension = fileName.split('.').pop()?.toLowerCase();
@@ -65,7 +65,7 @@ export const estimatePages = (file: File): string => {
   }
 };
 
-export const extractDocumentDetails = (files: File[]): DocumentDetails | null => {
+export const extractDocumentDetails = (files: File[], extraction_id?: string): DocumentDetails | null => {
   if (files.length === 0) return null;
   
   // For now, we'll use the first file
@@ -78,5 +78,6 @@ export const extractDocumentDetails = (files: File[]): DocumentDetails | null =>
     processing: 'Ready',
     fileName: file.name,
     fileSize: formatFileSize(file.size),
+    extraction_id,
   };
 }; 

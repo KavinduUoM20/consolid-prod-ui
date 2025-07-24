@@ -75,7 +75,7 @@ export function Extraction({ step = 'select-template' }: ExtractionProps) {
             Extraction ID
           </span>
           <span className="text-sm font-medium text-mono">
-            X319330-S24
+            {documentDetails?.extraction_id || 'N/A'}
           </span>
         </div>
         <div className="flex justify-between items-center">
