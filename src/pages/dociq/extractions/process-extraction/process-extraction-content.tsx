@@ -1,10 +1,41 @@
 import { MoveLeft, SquareMousePointer } from 'lucide-react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Extraction } from '../select-template/components/order';
 import { DocumentProcessor } from './components/document-processor';
+import { useDocumentStorage } from '../hooks/use-document-storage';
+import { useExtractionMapping } from '../hooks/use-extraction-mapping';
+import { useEffect } from 'react';
+import { toast } from 'sonner';
 
 export function ProcessExtractionContent() {
+  const { documentDetails } = useDocumentStorage();
+  const { startMapping, isMapping } = useExtractionMapping();
+  const navigate = useNavigate();
+
+  // Trigger mapping API call when component mounts
+  useEffect(() => {
+    const triggerMapping = async () => {
+      if (!documentDetails?.extraction_id) {
+        toast.error('Extraction ID is missing. Please upload a document first.');
+        navigate('/dociq/extractions/upload-document');
+        return;
+      }
+
+      const result = await startMapping(documentDetails.extraction_id);
+
+      if (result.success) {
+        toast.success('Mapping process started successfully!');
+      } else {
+        toast.error(result.error || 'Failed to start mapping process');
+        // Optionally navigate back to select template page on error
+        // navigate('/dociq/extractions/select-template');
+      }
+    };
+
+    triggerMapping();
+  }, [documentDetails?.extraction_id, startMapping, navigate]);
+
   return (
     <div className="grid xl:grid-cols-3 gap-5 lg:gap-9 mb-5 lg:mb-10">
       <div className="lg:col-span-2 space-y-5">

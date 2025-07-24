@@ -30,6 +30,15 @@ export function UploadDocumentContent() {
     const result = await uploadDocument(selectedFiles[0]);
 
     if (result.success) {
+      // Extract extraction_id from the response
+      const extractionId = result.data?.extraction_id;
+      
+      // Update document details with extraction_id
+      if (extractionId) {
+        const updatedDetails = extractDocumentDetails(selectedFiles, extractionId);
+        setDocumentDetails(updatedDetails);
+      }
+      
       // Show success message
       toast.success('Document uploaded successfully!');
       

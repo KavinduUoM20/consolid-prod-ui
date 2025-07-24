@@ -5,20 +5,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { DocumentDetails } from '../../types/extraction-types';
 
 export interface IExtractionItem {
   label: string;
   status: string;
 }
 export type IExtractionItems = Array<IExtractionItem>;
-
-export interface DocumentDetails {
-  type: string;
-  pages: string;
-  processing: string;
-  fileName?: string;
-  fileSize?: string;
-}
 
 interface ExtractionProps {
   documentDetails?: DocumentDetails | null;
@@ -78,6 +71,16 @@ export function Extraction({ documentDetails }: ExtractionProps) {
                 </span>
                 <span className="text-sm font-medium text-mono">
                   {documentDetails.fileSize}
+                </span>
+              </div>
+            )}
+            {documentDetails.extraction_id && (
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-normal text-secondary-foreground">
+                  Extraction ID
+                </span>
+                <span className="text-sm font-medium text-mono truncate max-w-32">
+                  {documentDetails.extraction_id}
                 </span>
               </div>
             )}

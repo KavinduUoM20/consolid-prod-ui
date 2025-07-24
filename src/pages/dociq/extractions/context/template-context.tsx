@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 export interface TemplateDetails {
+  id?: string;
   title: string;
   department: string;
   fields: number;

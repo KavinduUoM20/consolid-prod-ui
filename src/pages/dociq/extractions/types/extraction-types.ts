@@ -11,4 +11,5 @@ export interface DocumentDetails {
   processing: string;
   fileName?: string;
   fileSize?: string;
+  extraction_id?: string;
 } 

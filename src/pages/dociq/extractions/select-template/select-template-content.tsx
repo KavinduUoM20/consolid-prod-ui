@@ -1,14 +1,18 @@
 import { MoveLeft, MoveRight } from 'lucide-react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Info } from './components/info';
 import { Extraction } from './components/order';
 import { useDocumentStorage } from '../hooks/use-document-storage';
 import { useTemplateContext } from '../context/template-context';
+import { useTemplateProcessing } from '../hooks/use-template-processing';
+import { toast } from 'sonner';
 
 export function SelectTemplateContent() {
   const { documentDetails, isLoading: documentLoading } = useDocumentStorage();
   const { selectedTemplate } = useTemplateContext();
+  const { processTemplate, isProcessing } = useTemplateProcessing();
+  const navigate = useNavigate();
 
   // Show loading state
   if (documentLoading) {
@@ -45,6 +49,36 @@ export function SelectTemplateContent() {
     );
   }
 
+  const handleProcessDocument = async () => {
+    if (!selectedTemplate) {
+      toast.error('Please select a template first');
+      return;
+    }
+
+    if (!selectedTemplate.id) {
+      toast.error('Template ID is missing. Please select a valid template.');
+      return;
+    }
+
+    if (!documentDetails.extraction_id) {
+      toast.error('Extraction ID is missing. Please upload a document first.');
+      return;
+    }
+
+    const result = await processTemplate(documentDetails.extraction_id, selectedTemplate.id);
+
+    if (result.success) {
+      // Show success message
+      toast.success('Template processed successfully!');
+      
+      // Navigate to process extraction page
+      navigate('/dociq/extractions/process-extraction');
+    } else {
+      // Show error message
+      toast.error(result.error || 'Failed to process template');
+    }
+  };
+
   return (
     <div className="grid xl:grid-cols-3 gap-5 lg:gap-9 mb-5 lg:mb-10">
       <div className="lg:col-span-2 space-y-5">
@@ -57,10 +91,11 @@ export function SelectTemplateContent() {
             <Link to="/dociq/extractions/upload-document">Upload Document</Link>
           </Button>
 
-          <Button>
-            <Link to="/dociq/extractions/process-extraction">
-              Process Document
-            </Link>
+          <Button 
+            onClick={handleProcessDocument}
+            disabled={isProcessing || !selectedTemplate}
+          >
+            {isProcessing ? 'Processing...' : 'Process Document'}
             <MoveRight className="text-base" />
           </Button>
         </div>
