@@ -50,6 +50,7 @@ export function Info() {
           lastUsed: transformed.lastUsed,
           status: transformed.status,
           badge: transformed.badge,
+          id: transformed.id,
         };
       });
       setItems(transformedTemplates);
@@ -216,6 +217,9 @@ export function Info() {
   const handleSelect = (idx: number) => {
     const selectedItem = items[idx];
     
+    console.log('Selected template item:', selectedItem);
+    console.log('Template ID:', selectedItem.id);
+    
     // Update items state
     setItems(prev => prev.map((item, i) => ({
       ...item,
@@ -234,6 +238,8 @@ export function Info() {
       status: selectedItem.status,
       isDefault: true,
     };
+    
+    console.log('Template details to save:', templateDetails);
     setSelectedTemplate(templateDetails);
 
     toast.custom(

@@ -50,12 +50,17 @@ export function SelectTemplateContent() {
   }
 
   const handleProcessDocument = async () => {
+    console.log('Process Document clicked');
+    console.log('Selected template:', selectedTemplate);
+    console.log('Document details:', documentDetails);
+    
     if (!selectedTemplate) {
       toast.error('Please select a template first');
       return;
     }
 
     if (!selectedTemplate.id) {
+      console.error('Template ID is missing. Selected template:', selectedTemplate);
       toast.error('Template ID is missing. Please select a valid template.');
       return;
     }
