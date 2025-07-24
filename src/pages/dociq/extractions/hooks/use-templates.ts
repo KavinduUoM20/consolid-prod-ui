@@ -45,7 +45,7 @@ const getApiUrl = () => {
     return '/api/dociq/templates/';
   } else {
     // Use direct API in production (same pattern as extraction endpoint)
-    return 'https://api.consolidator-ai.site/api/v1/dociq/templates/';
+    return 'https://api.consolidator-ai.site/api/v1/dociq/templates';
   }
 };
 
