@@ -57,10 +57,7 @@ async function fetchTemplates(): Promise<ApiTemplate[]> {
     
     const response = await fetch(apiUrl, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+      // Don't set explicit headers - let the browser handle them like the working upload endpoint
     });
     
     console.log('Response status:', response.status);
