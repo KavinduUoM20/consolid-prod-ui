@@ -38,7 +38,7 @@ export function useTemplateProcessing() {
       console.log('Template ID:', templateId);
 
       const response = await fetch(apiUrl, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
