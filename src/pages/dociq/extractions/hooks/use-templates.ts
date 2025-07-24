@@ -44,7 +44,7 @@ const getApiUrl = () => {
     // Use proxy in development to avoid CORS
     return '/api/dociq/templates/';
   } else {
-    // Use direct API in production (assuming CORS is configured)
+    // Use direct API in production (same pattern as extraction endpoint)
     return 'https://api.consolidator-ai.site/api/v1/dociq/templates/';
   }
 };
@@ -69,7 +69,15 @@ async function fetchTemplates(): Promise<ApiTemplate[]> {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('API Error Response:', errorText);
-      throw new Error(`Failed to fetch templates: ${response.status} ${response.statusText}`);
+      
+      // Handle specific error cases
+      if (response.status === 404) {
+        throw new Error('Templates endpoint not found. Please check if the API endpoint is available.');
+      } else if (response.status === 403) {
+        throw new Error('Access denied. Please check your authentication.');
+      } else {
+        throw new Error(`Failed to fetch templates: ${response.status} ${response.statusText}`);
+      }
     }
     
     const data = await response.json();
@@ -81,6 +89,11 @@ async function fetchTemplates(): Promise<ApiTemplate[]> {
     // If it's a CORS error, provide a more specific message
     if (error instanceof TypeError && error.message.includes('fetch')) {
       throw new Error('Network error: Unable to connect to the server. This might be due to CORS restrictions or network connectivity issues.');
+    }
+    
+    // If it's a mixed content error
+    if (error instanceof TypeError && error.message.includes('Mixed Content')) {
+      throw new Error('Mixed Content Error: The page is loaded over HTTPS but trying to access an insecure resource. Please ensure the API endpoint uses HTTPS.');
     }
     
     throw error;
