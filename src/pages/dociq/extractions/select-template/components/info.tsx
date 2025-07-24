@@ -30,7 +30,7 @@ export function Info() {
   const { selectedTemplate, setSelectedTemplate } = useTemplateContext();
   
   // Use the API hook to fetch templates
-  const { data: apiTemplates, isLoading, error } = useTemplates();
+  const { data: apiTemplates } = useTemplates();
   
   // Transform API templates to component format
   const [items, setItems] = useState<ITemplateItem[]>([]);
@@ -88,44 +88,7 @@ export function Info() {
     }
   }, [editOpen, items, form]);
 
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-        <div className="text-center">
-          <h3 className="text-lg font-semibold text-foreground mb-2">
-            Loading Templates...
-          </h3>
-          <p className="text-muted-foreground">
-            Please wait while we fetch available templates.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show error state
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-        <Alert variant="destructive">
-          <AlertIcon />
-          <AlertTitle>Error Loading Templates</AlertTitle>
-          <p className="mt-2">
-            {error instanceof Error ? error.message : 'Failed to load templates. Please try again later.'}
-          </p>
-        </Alert>
-        <Button 
-          onClick={() => window.location.reload()} 
-          variant="outline"
-        >
-          Retry
-        </Button>
-      </div>
-    );
-  }
-
-  // Show empty state
+  // Show empty state if no templates are available
   if (!items || items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
