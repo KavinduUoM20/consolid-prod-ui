@@ -26,7 +26,13 @@ interface TemplateProviderProps {
 export function TemplateProvider({ children }: TemplateProviderProps) {
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateDetails | null>(null);
 
+  const setSelectedTemplateWithLogging = (template: TemplateDetails | null) => {
+    console.log('Setting selected template:', template);
+    setSelectedTemplate(template);
+  };
+
   const clearSelectedTemplate = () => {
+    console.log('Clearing selected template');
     setSelectedTemplate(null);
   };
 
@@ -34,7 +40,7 @@ export function TemplateProvider({ children }: TemplateProviderProps) {
     <TemplateContext.Provider
       value={{
         selectedTemplate,
-        setSelectedTemplate,
+        setSelectedTemplate: setSelectedTemplateWithLogging,
         clearSelectedTemplate,
       }}
     >
