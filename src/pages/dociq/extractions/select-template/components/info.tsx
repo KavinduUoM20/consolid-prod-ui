@@ -13,6 +13,7 @@ import { Alert, AlertIcon, AlertTitle } from '@/components/ui/alert';
 import { RiCheckboxCircleFill } from '@remixicon/react';
 import { toast } from 'sonner';
 import { useTemplateContext, TemplateDetails } from '../../context/template-context';
+import { useTemplates, transformApiTemplateToItem, TemplateItem } from '../../hooks/use-templates';
 
 interface ITemplateItem {
   default: boolean;
@@ -28,48 +29,31 @@ interface ITemplateItem {
 export function Info() {
   const { selectedTemplate, setSelectedTemplate } = useTemplateContext();
   
-  const [items, setItems] = useState<ITemplateItem[]>([
-    {
-      default: true,
-      title: 'Raw Material Template',
-      department: 'Procurement',
-      fields: 6,
-      description: 'Template for extracting raw material purchase data from invoices',
-      lastUsed: '2 days ago',
-      status: 'Active',
-      badge: true,
-    },
-    {
-      default: false,
-      title: 'Invoice Processing Template',
-      department: 'Finance',
-      fields: 8,
-      description: 'Standard template for processing vendor invoices',
-      lastUsed: '1 week ago',
-      status: 'Active',
-      badge: false,
-    },
-    {
-      default: false,
-      title: 'Expense Report Template',
-      department: 'HR',
-      fields: 4,
-      description: 'Template for employee expense report processing',
-      lastUsed: '3 days ago',
-      status: 'Draft',
-      badge: false,
-    },
-    {
-      default: false,
-      title: 'Contract Analysis Template',
-      department: 'Legal',
-      fields: 12,
-      description: 'Template for extracting key terms from legal contracts',
-      lastUsed: '2 weeks ago',
-      status: 'Active',
-      badge: false,
-    },
-  ]);
+  // Use the API hook to fetch templates
+  const { data: apiTemplates, isLoading, error } = useTemplates();
+  
+  // Transform API templates to component format
+  const [items, setItems] = useState<ITemplateItem[]>([]);
+
+  // Update items when API data changes
+  useEffect(() => {
+    if (apiTemplates && apiTemplates.length > 0) {
+      const transformedTemplates = apiTemplates.map((template, index) => {
+        const transformed = transformApiTemplateToItem(template, index === 0); // First template as default
+        return {
+          default: transformed.default,
+          title: transformed.title,
+          department: transformed.department,
+          fields: transformed.fields,
+          description: transformed.description,
+          lastUsed: transformed.lastUsed,
+          status: transformed.status,
+          badge: transformed.badge,
+        };
+      });
+      setItems(transformedTemplates);
+    }
+  }, [apiTemplates]);
 
   // Dialog state
   const [editOpen, setEditOpen] = useState<number|null>(null); 
@@ -103,6 +87,59 @@ export function Info() {
       });
     }
   }, [editOpen, items, form]);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold text-foreground mb-2">
+            Loading Templates...
+          </h3>
+          <p className="text-muted-foreground">
+            Please wait while we fetch available templates.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <Alert variant="destructive">
+          <AlertIcon />
+          <AlertTitle>Error Loading Templates</AlertTitle>
+          <p className="mt-2">
+            {error instanceof Error ? error.message : 'Failed to load templates. Please try again later.'}
+          </p>
+        </Alert>
+        <Button 
+          onClick={() => window.location.reload()} 
+          variant="outline"
+        >
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  // Show empty state
+  if (!items || items.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold text-foreground mb-2">
+            No Templates Available
+          </h3>
+          <p className="text-muted-foreground mb-4">
+            No templates are currently available. Please contact your administrator.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
 
   // Handle edit submit
