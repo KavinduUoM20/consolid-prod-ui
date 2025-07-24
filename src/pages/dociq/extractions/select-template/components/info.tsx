@@ -24,6 +24,7 @@ interface ITemplateItem {
   lastUsed: string;
   status: string;
   badge?: boolean;
+  id?: string;
 }
 
 export function Info() {
@@ -224,6 +225,7 @@ export function Info() {
 
     // Save selected template to localStorage
     const templateDetails: TemplateDetails = {
+      id: selectedItem.id,
       title: selectedItem.title,
       department: selectedItem.department,
       fields: selectedItem.fields,
