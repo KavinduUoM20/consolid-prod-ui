@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 interface ExtractionResult {
   id: string;
-  extraction_id: string;
   target_mappings: Array<{
     target_field: string;
     target_value: string;

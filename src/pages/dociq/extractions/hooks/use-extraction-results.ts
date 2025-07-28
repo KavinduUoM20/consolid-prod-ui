@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 
 // API URL configuration following existing pattern
@@ -37,7 +37,7 @@ export function useExtractionResults() {
 
   // Remove circular dependency - context will be updated from components
 
-  const fetchResults = async (extractionId: string): Promise<ExtractionResultsResponse> => {
+  const fetchResults = useCallback(async (extractionId: string): Promise<ExtractionResultsResponse> => {
     if (!extractionId) {
       return {
         success: false,
@@ -95,7 +95,7 @@ export function useExtractionResults() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   return {
     fetchResults,

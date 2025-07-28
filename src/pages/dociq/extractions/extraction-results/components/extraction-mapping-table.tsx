@@ -14,7 +14,6 @@ interface ExtractionMapping {
 
 interface ExtractionResult {
   id: string;
-  extraction_id: string;
   target_mappings: Array<{
     target_field: string;
     target_value: string;
