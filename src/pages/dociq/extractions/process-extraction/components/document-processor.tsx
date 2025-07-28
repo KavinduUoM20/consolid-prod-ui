@@ -17,7 +17,7 @@ interface ProcessingStep {
 
 export function DocumentProcessor() {
   const { processingState, updateProgress, updateCurrentStep, updateTimeElapsed, updateEstimatedTime } = useProcessingContext();
-  const { progress, currentStep } = processingState;
+  const { progress, currentStep, status } = processingState;
 
   const processingSteps: ProcessingStep[] = [
     {
@@ -50,48 +50,44 @@ export function DocumentProcessor() {
     },
   ];
 
+  // Update progress based on actual mapping status
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (progress >= 100) {
-        clearInterval(interval);
-        return;
-      }
-      
-      // Simulate realistic progress based on mapping status
-      let progressIncrement = 1;
-      
-      // If we're in the early stages, progress slower
-      if (progress < 30) {
-        progressIncrement = 0.5;
-      } else if (progress < 70) {
-        progressIncrement = 1.5;
-      } else {
-        progressIncrement = 2;
-      }
-      
-      const newProgress = progress + progressIncrement;
-      const finalProgress = Math.min(newProgress, 100);
-      
-      updateProgress(finalProgress);
-      
-      // Update current step based on progress
-      if (finalProgress >= 25 && currentStep === 0) {
+    if (status === 'processing') {
+      // Start with 25% when processing begins
+      if (progress < 25) {
+        updateProgress(25);
         updateCurrentStep(1);
-      } else if (finalProgress >= 50 && currentStep === 1) {
-        updateCurrentStep(2);
-      } else if (finalProgress >= 75 && currentStep === 2) {
-        updateCurrentStep(3);
       }
       
-      // Update time elapsed
-      updateTimeElapsed(Math.floor(finalProgress / 10));
-      
-      // Update estimated time
-      updateEstimatedTime(Math.max(1, Math.floor((100 - finalProgress) / 10)));
-    }, 500); // Slower interval for more realistic progress
+      // Simulate progress to 100% over 3 seconds
+      const interval = setInterval(() => {
+        if (progress >= 100) {
+          clearInterval(interval);
+          return;
+        }
+        
+        const newProgress = Math.min(progress + 15, 100);
+        updateProgress(newProgress);
+        
+        // Update steps based on progress
+        if (newProgress >= 50 && currentStep === 1) {
+          updateCurrentStep(2);
+        } else if (newProgress >= 75 && currentStep === 2) {
+          updateCurrentStep(3);
+        }
+        
+        // Update time elapsed
+        updateTimeElapsed(Math.floor(newProgress / 10));
+        updateEstimatedTime(Math.max(1, Math.floor((100 - newProgress) / 10)));
+      }, 500);
 
-    return () => clearInterval(interval);
-  }, [progress, currentStep, updateProgress, updateCurrentStep, updateTimeElapsed, updateEstimatedTime]);
+      return () => clearInterval(interval);
+    } else if (status === 'completed') {
+      // Set to 100% when completed
+      updateProgress(100);
+      updateCurrentStep(3);
+    }
+  }, [status, progress, currentStep, updateProgress, updateCurrentStep, updateTimeElapsed, updateEstimatedTime]);
 
   const getStepStatus = (index: number): ProcessingStep['status'] => {
     if (index < currentStep) return 'completed';
