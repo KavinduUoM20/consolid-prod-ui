@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface ExtractionMapping {
   id: string;
@@ -10,6 +10,23 @@ interface ExtractionMapping {
   targetField: string;
   documentField: string;
   confidence: number;
+}
+
+interface ExtractionResult {
+  id: string;
+  extraction_id: string;
+  target_mappings: Array<{
+    target_field: string;
+    target_value: string;
+    target_confidence: number | null;
+  }>;
+  overall_confidence: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ExtractionMappingTableProps {
+  extractionResults?: ExtractionResult | null;
 }
 
 const mockData: ExtractionMapping[] = [
@@ -99,10 +116,31 @@ const mockData: ExtractionMapping[] = [
   }
 ];
 
-export function ExtractionMappingTable() {
-  const [data, setData] = useState<ExtractionMapping[]>(mockData);
+export function ExtractionMappingTable({ extractionResults }: ExtractionMappingTableProps) {
+  const [data, setData] = useState<ExtractionMapping[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
+
+  // Transform API results to table data
+  const transformResultsToTableData = (results: ExtractionResult): ExtractionMapping[] => {
+    return results.target_mappings.map((mapping, index) => ({
+      id: `${index + 1}`,
+      standardField: mapping.target_field,
+      targetField: mapping.target_field,
+      documentField: mapping.target_value || 'Not found',
+      confidence: mapping.target_confidence || 0,
+    }));
+  };
+
+  // Update data when extraction results change
+  useEffect(() => {
+    if (extractionResults) {
+      const transformedData = transformResultsToTableData(extractionResults);
+      setData(transformedData);
+    } else {
+      setData(mockData); // Fallback to mock data if no results
+    }
+  }, [extractionResults]);
 
   const handleEdit = (item: ExtractionMapping) => {
     setEditingId(item.id);

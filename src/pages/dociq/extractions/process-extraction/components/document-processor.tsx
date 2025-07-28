@@ -57,7 +57,19 @@ export function DocumentProcessor() {
         return;
       }
       
-      const newProgress = progress + Math.random() * 3 + 1;
+      // Simulate realistic progress based on mapping status
+      let progressIncrement = 1;
+      
+      // If we're in the early stages, progress slower
+      if (progress < 30) {
+        progressIncrement = 0.5;
+      } else if (progress < 70) {
+        progressIncrement = 1.5;
+      } else {
+        progressIncrement = 2;
+      }
+      
+      const newProgress = progress + progressIncrement;
       const finalProgress = Math.min(newProgress, 100);
       
       updateProgress(finalProgress);
@@ -76,7 +88,7 @@ export function DocumentProcessor() {
       
       // Update estimated time
       updateEstimatedTime(Math.max(1, Math.floor((100 - finalProgress) / 10)));
-    }, 200);
+    }, 500); // Slower interval for more realistic progress
 
     return () => clearInterval(interval);
   }, [progress, currentStep, updateProgress, updateCurrentStep, updateTimeElapsed, updateEstimatedTime]);

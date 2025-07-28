@@ -13,23 +13,31 @@ import { Container } from '@/components/common/container';
 import { ExtractionResultsContent } from '.';
 import { Steps } from '../steps';
 import { SaveResultsModal } from './components/save-results-modal';
+import { useDocumentStorage } from '../hooks/use-document-storage';
+import { useExtractionResultsContext } from '../context/extraction-results-context';
 
 export function ExtractionResultsPage() {
   const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const { documentDetails } = useDocumentStorage();
+  const { extractionResults } = useExtractionResultsContext();
 
-  // Mock extraction data - in a real app, this would come from your extraction results
-  const extractionData = {
-    extractionId: 'X319330-S24',
-    extractionDate: '2025-01-26',
-    template: 'Invoice Processing Template',
-    documentType: 'PDF',
-    fields: [
-      { standardField: 'Invoice Number', documentField: 'INV-2025-001', confidence: 98.5 },
-      { standardField: 'Invoice Date', documentField: '2025-01-15', confidence: 95.2 },
-      { standardField: 'Due Date', documentField: '2025-02-15', confidence: 92.8 },
-      { standardField: 'Vendor Name', documentField: 'Tech Solutions Inc.', confidence: 87.3 },
-      { standardField: 'Total Amount', documentField: '$450.00', confidence: 96.3 },
-    ]
+  // Transform API results to modal data
+  const extractionData = extractionResults ? {
+    extractionId: documentDetails?.extraction_id || 'Unknown',
+    extractionDate: new Date(extractionResults.created_at).toLocaleDateString(),
+    template: 'Invoice Processing Template', // This could come from template context
+    documentType: documentDetails?.type || 'PDF',
+    fields: extractionResults.target_mappings.map((mapping: any) => ({
+      standardField: mapping.target_field,
+      documentField: mapping.target_value || 'Not found',
+      confidence: mapping.target_confidence || 0,
+    }))
+  } : {
+    extractionId: 'Unknown',
+    extractionDate: 'Unknown',
+    template: 'Unknown',
+    documentType: 'Unknown',
+    fields: []
   };
 
   return (
