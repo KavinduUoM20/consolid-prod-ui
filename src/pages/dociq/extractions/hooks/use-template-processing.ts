@@ -14,7 +14,11 @@ const getApiUrl = (extractionId: string) => {
 
 interface ProcessTemplateResponse {
   success: boolean;
-  data?: any;
+  data?: {
+    extraction_id: string;
+    template_id: string;
+    message: string;
+  };
   error?: string;
 }
 

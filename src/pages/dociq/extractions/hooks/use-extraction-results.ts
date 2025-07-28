@@ -5,10 +5,10 @@ import { toast } from 'sonner';
 const getApiUrl = (extractionId: string) => {
   if (import.meta.env.DEV) {
     // Use proxy in development to avoid CORS
-    return `/api/dociq/extractions/${extractionId}/results`;
+    return `/api/dociq/extractions/${extractionId}`;
   } else {
     // Use direct API in production
-    return `https://api.consolidator-ai.site/api/v1/dociq/extractions/${extractionId}/results`;
+    return `https://api.consolidator-ai.site/api/v1/dociq/extractions/${extractionId}`;
   }
 };
 
@@ -35,16 +35,7 @@ export function useExtractionResults() {
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<ExtractionResult | null>(null);
 
-  // Try to get context if available
-  let contextSetResults: ((results: ExtractionResult | null) => void) | null = null;
-  try {
-    // Dynamic import to avoid circular dependency
-    const { useExtractionResultsContext } = require('../context/extraction-results-context');
-    const context = useExtractionResultsContext();
-    contextSetResults = context.setExtractionResults;
-  } catch (error) {
-    // Context not available, continue without it
-  }
+  // Remove circular dependency - context will be updated from components
 
   const fetchResults = async (extractionId: string): Promise<ExtractionResultsResponse> => {
     if (!extractionId) {
@@ -81,10 +72,6 @@ export function useExtractionResults() {
       console.log('Extraction Results API Response data:', data);
 
       setResults(data);
-      // Also update context if available
-      if (contextSetResults) {
-        contextSetResults(data);
-      }
       return {
         success: true,
         data
@@ -110,32 +97,8 @@ export function useExtractionResults() {
     }
   };
 
-  const pollResults = async (extractionId: string, maxAttempts: number = 30, interval: number = 2000): Promise<ExtractionResultsResponse> => {
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const result = await fetchResults(extractionId);
-      
-      if (result.success && result.data) {
-        return result;
-      }
-      
-      // If it's the last attempt, return the error
-      if (attempt === maxAttempts - 1) {
-        return result;
-      }
-      
-      // Wait before next attempt
-      await new Promise(resolve => setTimeout(resolve, interval));
-    }
-    
-    return {
-      success: false,
-      error: 'Timeout: Extraction results not available after maximum attempts'
-    };
-  };
-
   return {
     fetchResults,
-    pollResults,
     results,
     isLoading
   };
