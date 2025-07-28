@@ -39,9 +39,6 @@ export function useTemplateProcessing() {
 
       const response = await fetch(apiUrl, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           template_id: templateId
         }),
