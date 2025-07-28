@@ -7,7 +7,7 @@ import { useDocumentStorage } from '../hooks/use-document-storage';
 import { useExtractionMapping } from '../hooks/use-extraction-mapping';
 import { useProcessingContext } from '../context/processing-context';
 import { useExtractionResultsContext } from '../context/extraction-results-context';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
 export function ProcessExtractionContent() {
@@ -16,11 +16,17 @@ export function ProcessExtractionContent() {
   const { updateStatus } = useProcessingContext();
   const { setExtractionResults } = useExtractionResultsContext();
   const navigate = useNavigate();
+  const hasTriggeredMapping = useRef(false);
 
   // Trigger mapping API call when component mounts
   useEffect(() => {
     // Wait for document details to load from localStorage
     if (documentLoading) {
+      return;
+    }
+
+    // Prevent multiple calls
+    if (hasTriggeredMapping.current) {
       return;
     }
 
@@ -30,6 +36,9 @@ export function ProcessExtractionContent() {
         navigate('/dociq/extractions/upload-document');
         return;
       }
+
+      // Mark as triggered to prevent multiple calls
+      hasTriggeredMapping.current = true;
 
       console.log('Starting mapping process for extraction:', documentDetails.extraction_id);
       const result = await startMapping(documentDetails.extraction_id);
@@ -44,6 +53,11 @@ export function ProcessExtractionContent() {
     };
 
     triggerMapping();
+
+    // Cleanup function to reset the flag when component unmounts
+    return () => {
+      hasTriggeredMapping.current = false;
+    };
   }, [documentDetails?.extraction_id, documentLoading, startMapping, updateStatus, navigate]);
 
   // Show loading state while document details are being loaded
