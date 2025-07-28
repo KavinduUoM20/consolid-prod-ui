@@ -73,8 +73,9 @@ export function SelectTemplateContent() {
     const result = await processTemplate(documentDetails.extraction_id, selectedTemplate.id);
 
     if (result.success) {
-      // Show success message
-      toast.success('Template processed successfully!');
+      // Show success message with the response message
+      const message = result.data?.message || 'Template processed successfully!';
+      toast.success(message);
       
       // Navigate to process extraction page
       navigate('/dociq/extractions/process-extraction');

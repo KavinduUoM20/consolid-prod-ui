@@ -28,28 +28,12 @@ export function ProcessExtractionContent() {
         return;
       }
 
+      console.log('Starting mapping process for extraction:', documentDetails.extraction_id);
       const result = await startMapping(documentDetails.extraction_id);
 
       if (result.success) {
         toast.success('Mapping process started successfully!');
-        
-        // Start polling for results after mapping is initiated
-        setTimeout(async () => {
-          const resultsResult = await pollResults(documentDetails.extraction_id!);
-          
-          if (resultsResult.success && resultsResult.data) {
-            updateStatus('completed');
-            setExtractionResults(resultsResult.data);
-            toast.success('Extraction completed successfully!');
-            // Navigate to results page after a short delay
-            setTimeout(() => {
-              navigate('/dociq/extractions/extraction-results');
-            }, 1000);
-          } else {
-            updateStatus('completed'); // Still mark as completed even if results fetch fails
-            toast.warning('Mapping completed but results are not yet available. You can check results manually.');
-          }
-        }, 3000); // Wait 3 seconds before starting to poll
+        updateStatus('processing');
       } else {
         toast.error(result.error || 'Failed to start mapping process');
         updateStatus('pending');
@@ -57,7 +41,7 @@ export function ProcessExtractionContent() {
     };
 
     triggerMapping();
-  }, [documentDetails?.extraction_id, startMapping, pollResults, updateStatus, navigate]);
+  }, [documentDetails?.extraction_id, startMapping, updateStatus, navigate]);
 
   return (
     <div className="grid xl:grid-cols-3 gap-5 lg:gap-9 mb-5 lg:mb-10">
@@ -70,7 +54,13 @@ export function ProcessExtractionContent() {
           </Button>
 
           <Button 
-            onClick={() => navigate('/dociq/extractions/extraction-results')}
+            onClick={() => {
+              if (documentDetails?.extraction_id) {
+                navigate('/dociq/extractions/extraction-results');
+              } else {
+                toast.error('No extraction data available');
+              }
+            }}
             disabled={isMapping}
           >
             {isMapping ? 'Processing...' : 'Complete Extraction'}
