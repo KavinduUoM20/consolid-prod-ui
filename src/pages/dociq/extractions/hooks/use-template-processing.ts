@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 // API URL configuration following existing pattern
-const getApiUrl = (extractionId: string) => {
+const getApiUrl = (extractionId: string, templateId: string) => {
   if (import.meta.env.DEV) {
     // Use proxy in development to avoid CORS
-    return `/api/dociq/extractions/${extractionId}`;
+    return `/api/dociq/extractions/${extractionId}?template_id=${templateId}`;
   } else {
     // Use direct API in production
-    return `https://api.consolidator-ai.site/api/v1/dociq/extractions/${extractionId}`;
+    return `https://api.consolidator-ai.site/api/v1/dociq/extractions/${extractionId}?template_id=${templateId}`;
   }
 };
 
@@ -32,16 +32,16 @@ export function useTemplateProcessing() {
     setIsProcessing(true);
 
     try {
-      const apiUrl = getApiUrl(extractionId);
+      const apiUrl = getApiUrl(extractionId, templateId);
       console.log('Processing template at:', apiUrl);
       console.log('Environment:', import.meta.env.DEV ? 'Development' : 'Production');
       console.log('Template ID:', templateId);
 
       const response = await fetch(apiUrl, {
         method: 'PATCH',
-        body: JSON.stringify({
-          template_id: templateId
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
       console.log('Process template response status:', response.status);
