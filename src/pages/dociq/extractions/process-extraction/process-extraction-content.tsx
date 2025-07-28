@@ -13,10 +13,11 @@ import { toast } from 'sonner';
 export function ProcessExtractionContent() {
   const { documentDetails, isLoading: documentLoading } = useDocumentStorage();
   const { startMapping, isMapping } = useExtractionMapping();
-  const { updateStatus } = useProcessingContext();
+  const { updateStatus, processingState } = useProcessingContext();
   const { setExtractionResults } = useExtractionResultsContext();
   const navigate = useNavigate();
   const hasTriggeredMapping = useRef(false);
+  const hasNavigatedToResults = useRef(false);
 
   // Trigger mapping API call when component mounts
   useEffect(() => {
@@ -46,6 +47,15 @@ export function ProcessExtractionContent() {
       if (result.success) {
         toast.success('Mapping process started successfully!');
         updateStatus('processing');
+        
+        // Auto-navigate to results after 3 seconds
+        setTimeout(() => {
+          if (!hasNavigatedToResults.current) {
+            hasNavigatedToResults.current = true;
+            updateStatus('completed');
+            navigate('/dociq/extractions/extraction-results');
+          }
+        }, 3000);
       } else {
         toast.error(result.error || 'Failed to start mapping process');
         updateStatus('pending');
@@ -54,9 +64,10 @@ export function ProcessExtractionContent() {
 
     triggerMapping();
 
-    // Cleanup function to reset the flag when component unmounts
+    // Cleanup function to reset the flags when component unmounts
     return () => {
       hasTriggeredMapping.current = false;
+      hasNavigatedToResults.current = false;
     };
   }, [documentDetails?.extraction_id, documentLoading, startMapping, updateStatus, navigate]);
 
@@ -103,9 +114,9 @@ export function ProcessExtractionContent() {
                 toast.error('No extraction data available');
               }
             }}
-            disabled={isMapping}
+            disabled={isMapping || processingState.status === 'processing'}
           >
-            {isMapping ? 'Processing...' : 'Complete Extraction'}
+            {isMapping || processingState.status === 'processing' ? 'Processing...' : 'Complete Extraction'}
             <SquareMousePointer className="text-base" />
           </Button>
         </div>
