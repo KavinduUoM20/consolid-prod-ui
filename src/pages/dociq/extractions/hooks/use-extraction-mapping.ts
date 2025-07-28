@@ -14,7 +14,21 @@ const getApiUrl = (extractionId: string) => {
 
 interface MappingResponse {
   success: boolean;
-  data?: any;
+  data?: {
+    extraction_id: string;
+    message: string;
+    result: {
+      target_mappings: Array<{
+        target_field: string;
+        target_value: string;
+        target_confidence: number | null;
+      }>;
+      overall_confidence: number;
+      updated_at: string;
+      created_at: string;
+      id: string;
+    };
+  };
   error?: string;
 }
 

@@ -45,17 +45,23 @@ export function ProcessExtractionContent() {
       const result = await startMapping(documentDetails.extraction_id);
 
       if (result.success) {
-        toast.success('Mapping process started successfully!');
-        updateStatus('processing');
+        // Store the results data from the mapping response
+        if (result.data?.result) {
+          setExtractionResults(result.data.result);
+        }
         
-        // Auto-navigate to results after 3 seconds
+        // Show success message with the response message
+        const message = result.data?.message || 'Mapping process completed successfully!';
+        toast.success(message);
+        updateStatus('completed');
+        
+        // Navigate to results page immediately since we have the data
         setTimeout(() => {
           if (!hasNavigatedToResults.current) {
             hasNavigatedToResults.current = true;
-            updateStatus('completed');
             navigate('/dociq/extractions/extraction-results');
           }
-        }, 3000);
+        }, 1000); // Short delay for better UX
       } else {
         toast.error(result.error || 'Failed to start mapping process');
         updateStatus('pending');
