@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 
 // API URL configuration following existing pattern
@@ -21,7 +21,7 @@ interface MappingResponse {
 export function useExtractionMapping() {
   const [isMapping, setIsMapping] = useState(false);
 
-  const startMapping = async (extractionId: string): Promise<MappingResponse> => {
+  const startMapping = useCallback(async (extractionId: string): Promise<MappingResponse> => {
     if (!extractionId) {
       return {
         success: false,
@@ -79,7 +79,7 @@ export function useExtractionMapping() {
     } finally {
       setIsMapping(false);
     }
-  };
+  }, []);
 
   return {
     startMapping,
