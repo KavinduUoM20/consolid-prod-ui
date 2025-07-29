@@ -8,7 +8,9 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { IExtractionItem, IExtractionItems } from '../../types/extraction-types';
-import { useExtractionSession } from '../../context/extraction-session-context';
+import { useDocumentStorage } from '../../hooks/use-document-storage';
+import { useTemplateContext } from '../../context/template-context';
+import { useProcessingContext } from '../../context/processing-context';
 
 type ExtractionStep = 'upload' | 'select-template' | 'process-extraction' | 'extraction-results';
 
@@ -17,13 +19,13 @@ interface ExtractionProps {
 }
 
 export function Extraction({ step = 'select-template' }: ExtractionProps) {
-  const { session, isLoading } = useExtractionSession();
-  const documentDetails = session?.documentDetails;
-  const selectedTemplate = session?.selectedTemplate;
-  const extractionResults = session?.extractionResults;
+  const { documentDetails, isLoading: documentLoading } = useDocumentStorage();
+  const { selectedTemplate } = useTemplateContext();
+  const { processingState } = useProcessingContext();
+  const { progress, timeElapsed, estimatedTime, stepsCompleted, totalSteps, status } = processingState;
 
   // Show loading state
-  if (isLoading) {
+  if (documentLoading) {
     return (
       <Card className="bg-accent/50">
         <CardHeader className="px-5">
@@ -31,7 +33,7 @@ export function Extraction({ step = 'select-template' }: ExtractionProps) {
         </CardHeader>
         <CardContent className="px-5 py-4">
           <div className="text-center text-muted-foreground">
-            Loading session details...
+            Loading document details...
           </div>
         </CardContent>
       </Card>
@@ -126,7 +128,7 @@ export function Extraction({ step = 'select-template' }: ExtractionProps) {
               Progress
             </span>
             <span className="text-sm font-medium text-mono">
-              {Math.round(session?.processingState?.progress || 0)}%
+              {Math.round(progress)}%
             </span>
           </div>
           <div className="flex justify-between items-center">
@@ -134,7 +136,7 @@ export function Extraction({ step = 'select-template' }: ExtractionProps) {
               Time Elapsed
             </span>
             <span className="text-sm font-medium text-mono">
-              {session?.processingState?.timeElapsed || '0'}s
+              {timeElapsed}s
             </span>
           </div>
           <div className="flex justify-between items-center">
@@ -142,7 +144,7 @@ export function Extraction({ step = 'select-template' }: ExtractionProps) {
               Estimated Time
             </span>
             <span className="text-sm font-medium text-mono">
-              {session?.processingState?.progress < 100 ? `${session?.processingState?.estimatedTime || '0'}s` : 'Complete'}
+              {progress < 100 ? `${estimatedTime}s` : 'Complete'}
             </span>
           </div>
           <div className="flex justify-between items-center">
@@ -150,7 +152,7 @@ export function Extraction({ step = 'select-template' }: ExtractionProps) {
               Steps Completed
             </span>
             <span className="text-sm font-medium text-mono">
-              {session?.processingState?.stepsCompleted || 0} / {session?.processingState?.totalSteps || 0}
+              {stepsCompleted} / {totalSteps}
             </span>
           </div>
           <div className="flex justify-between items-center">
@@ -158,7 +160,7 @@ export function Extraction({ step = 'select-template' }: ExtractionProps) {
               Status
             </span>
             <span className="text-sm font-medium text-mono">
-              {session?.processingState?.status === 'completed' ? 'Completed' : 'Processing'}
+              {status === 'completed' ? 'Completed' : 'Processing'}
             </span>
           </div>
         </div>
@@ -292,7 +294,7 @@ export function Extraction({ step = 'select-template' }: ExtractionProps) {
       case 'select-template':
         return { label: 'Extraction Status', value: selectedTemplate ? 'Template Selected' : 'No Template' };
       case 'process-extraction':
-        return { label: 'Extraction Status', value: session?.processingState?.status === 'completed' ? 'Processed Extraction' : 'Processing' };
+        return { label: 'Extraction Status', value: status === 'completed' ? 'Processed Extraction' : 'Processing' };
       case 'extraction-results':
         return { label: 'Extraction Status', value: 'Results' };
       default:
