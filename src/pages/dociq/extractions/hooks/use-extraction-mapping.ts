@@ -43,6 +43,15 @@ export function useExtractionMapping() {
       };
     }
 
+    // Prevent multiple simultaneous calls using a ref-like approach
+    if (isMapping) {
+      console.log('Mapping already in progress, skipping...');
+      return {
+        success: false,
+        error: 'Mapping already in progress'
+      };
+    }
+
     setIsMapping(true);
 
     try {
@@ -93,7 +102,7 @@ export function useExtractionMapping() {
     } finally {
       setIsMapping(false);
     }
-  }, []);
+  }, []); // Remove isMapping dependency to prevent infinite loops
 
   return {
     startMapping,
