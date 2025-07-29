@@ -16,6 +16,15 @@ const QueryProvider = ({ children }: { children: ReactNode }) => {
       new QueryClient({
         queryCache: new QueryCache({
           onError: (error) => {
+            // Don't show error notifications for certain types of errors
+            // that are expected or handled elsewhere
+            if (error.message?.includes('Network error') || 
+                error.message?.includes('CORS') ||
+                error.message?.includes('Server error')) {
+              console.warn('Suppressed error notification:', error.message);
+              return;
+            }
+
             const message =
               error.message || 'Something went wrong. Please try again.';
 
