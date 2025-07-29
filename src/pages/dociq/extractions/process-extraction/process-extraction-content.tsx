@@ -24,7 +24,22 @@ export function ProcessExtractionContent() {
   // Set up cleanup for component unmount
   useEffect(() => {
     return () => {
+      console.log('Process extraction component unmounting...');
       isMounted.current = false;
+    };
+  }, []);
+
+  // Add a check to prevent mapping if user navigates away
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      console.log('User navigating away, cancelling mapping process');
+      isMounted.current = false;
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, []);
 
@@ -47,6 +62,9 @@ export function ProcessExtractionContent() {
       return;
     }
 
+    let isCancelled = false;
+    let timeoutId: NodeJS.Timeout;
+
     const triggerMapping = async () => {
       // Mark as triggered to prevent multiple calls
       hasTriggeredMapping.current = true;
@@ -54,8 +72,25 @@ export function ProcessExtractionContent() {
 
       console.log('Starting mapping process for extraction:', documentDetails.extraction_id);
       
+      // Add a timeout to prevent indefinite blocking
+      timeoutId = setTimeout(() => {
+        if (!isCancelled) {
+          console.log('Mapping timeout reached, allowing manual navigation');
+          mappingInProgress.current = false;
+        }
+      }, 30000); // 30 second timeout
+      
       try {
         const result = await startMapping(documentDetails.extraction_id!);
+        
+        // Clear the timeout since we got a response
+        clearTimeout(timeoutId);
+
+        // Check if component was unmounted during the API call
+        if (isCancelled || !isMounted.current) {
+          console.log('Component unmounted during API call, cancelling navigation');
+          return;
+        }
 
         console.log('Mapping result:', result);
         console.log('Result success:', result.success);
@@ -83,7 +118,7 @@ export function ProcessExtractionContent() {
           // Navigate to results page immediately since we have the data
           console.log('Navigating to extraction results page immediately...');
           console.log('Component mounted:', isMounted.current);
-          if (isMounted.current) {
+          if (isMounted.current && !isCancelled) {
             hasNavigatedToResults.current = true;
             navigate('/dociq/extractions/extraction-results');
           } else {
@@ -96,11 +131,15 @@ export function ProcessExtractionContent() {
         }
       } catch (error) {
         console.error('Error in triggerMapping:', error);
-        toast.error('An unexpected error occurred during mapping');
-        updateStatus('pending');
+        if (!isCancelled) {
+          toast.error('An unexpected error occurred during mapping');
+          updateStatus('pending');
+        }
       } finally {
-        // Reset the progress flag
-        mappingInProgress.current = false;
+        // Reset the progress flag only if not cancelled
+        if (!isCancelled) {
+          mappingInProgress.current = false;
+        }
       }
     };
 
@@ -108,6 +147,9 @@ export function ProcessExtractionContent() {
 
     // Cleanup function to reset the flags when component unmounts
     return () => {
+      console.log('Process extraction component unmounting, cleaning up...');
+      isCancelled = true;
+      clearTimeout(timeoutId);
       hasTriggeredMapping.current = false;
       hasNavigatedToResults.current = false;
       mappingInProgress.current = false;
