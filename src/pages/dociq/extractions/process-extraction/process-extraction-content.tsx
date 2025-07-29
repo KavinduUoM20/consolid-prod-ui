@@ -18,8 +18,9 @@ export function ProcessExtractionContent() {
   const navigate = useNavigate();
   const hasTriggeredMapping = useRef(false);
   const hasNavigatedToResults = useRef(false);
+  const mappingInProgress = useRef(false);
 
-  // Trigger mapping API call when component mounts
+  // Trigger mapping API call when component mounts - only once
   useEffect(() => {
     // Wait for document details to load from localStorage
     if (documentLoading) {
@@ -27,44 +28,56 @@ export function ProcessExtractionContent() {
     }
 
     // Prevent multiple calls
-    if (hasTriggeredMapping.current) {
+    if (hasTriggeredMapping.current || mappingInProgress.current) {
+      return;
+    }
+
+    // Only proceed if we have an extraction ID
+    if (!documentDetails?.extraction_id) {
+      toast.error('Extraction ID is missing. Please upload a document first.');
+      navigate('/dociq/extractions/upload-document');
       return;
     }
 
     const triggerMapping = async () => {
-      if (!documentDetails?.extraction_id) {
-        toast.error('Extraction ID is missing. Please upload a document first.');
-        navigate('/dociq/extractions/upload-document');
-        return;
-      }
-
       // Mark as triggered to prevent multiple calls
       hasTriggeredMapping.current = true;
+      mappingInProgress.current = true;
 
       console.log('Starting mapping process for extraction:', documentDetails.extraction_id);
-      const result = await startMapping(documentDetails.extraction_id);
+      
+      try {
+        const result = await startMapping(documentDetails.extraction_id!);
 
-      if (result.success) {
-        // Store the results data from the mapping response
-        if (result.data?.result) {
-          setExtractionResults(result.data.result);
-        }
-        
-        // Show success message with the response message
-        const message = result.data?.message || 'Mapping process completed successfully!';
-        toast.success(message);
-        updateStatus('completed');
-        
-        // Navigate to results page immediately since we have the data
-        setTimeout(() => {
-          if (!hasNavigatedToResults.current) {
-            hasNavigatedToResults.current = true;
-            navigate('/dociq/extractions/extraction-results');
+        if (result.success) {
+          // Store the results data from the mapping response
+          if (result.data?.result) {
+            setExtractionResults(result.data.result);
           }
-        }, 1000); // Short delay for better UX
-      } else {
-        toast.error(result.error || 'Failed to start mapping process');
+          
+          // Show success message with the response message
+          const message = result.data?.message || 'Mapping process completed successfully!';
+          toast.success(message);
+          updateStatus('completed');
+          
+          // Navigate to results page immediately since we have the data
+          setTimeout(() => {
+            if (!hasNavigatedToResults.current) {
+              hasNavigatedToResults.current = true;
+              navigate('/dociq/extractions/extraction-results');
+            }
+          }, 1000); // Short delay for better UX
+        } else {
+          toast.error(result.error || 'Failed to start mapping process');
+          updateStatus('pending');
+        }
+      } catch (error) {
+        console.error('Error in triggerMapping:', error);
+        toast.error('An unexpected error occurred during mapping');
         updateStatus('pending');
+      } finally {
+        // Reset the progress flag
+        mappingInProgress.current = false;
       }
     };
 
@@ -74,8 +87,9 @@ export function ProcessExtractionContent() {
     return () => {
       hasTriggeredMapping.current = false;
       hasNavigatedToResults.current = false;
+      mappingInProgress.current = false;
     };
-  }, [documentDetails?.extraction_id, documentLoading, startMapping, updateStatus, navigate]);
+  }, [documentDetails?.extraction_id, documentLoading]); // Only depend on these stable values
 
   // Show loading state while document details are being loaded
   if (documentLoading) {
