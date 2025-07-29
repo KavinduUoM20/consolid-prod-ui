@@ -67,8 +67,11 @@ export function ExtractionResultsProvider({ children }: ExtractionResultsProvide
 }
 
 export function useExtractionResultsContext() {
+  console.log('useExtractionResultsContext called');
   const context = useContext(ExtractionResultsContext);
+  console.log('Context value:', context);
   if (context === undefined) {
+    console.error('useExtractionResultsContext must be used within an ExtractionResultsProvider');
     throw new Error('useExtractionResultsContext must be used within an ExtractionResultsProvider');
   }
   return context;
