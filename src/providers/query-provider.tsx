@@ -15,13 +15,28 @@ const QueryProvider = ({ children }: { children: ReactNode }) => {
     () =>
       new QueryClient({
         queryCache: new QueryCache({
-          onError: (error) => {
-            // Don't show error notifications for certain types of errors
-            // that are expected or handled elsewhere
-            if (error.message?.includes('Network error') || 
-                error.message?.includes('CORS') ||
-                error.message?.includes('Server error')) {
-              console.warn('Suppressed error notification:', error.message);
+          onError: (error, query) => {
+            // Don't show toasts for network errors that might be from background API calls
+            if (error instanceof Error && error.message.includes('Network error')) {
+              console.warn('Network error suppressed from toast:', error.message);
+              return;
+            }
+            
+            // Don't show toasts for fetch errors that might be from background calls
+            if (error instanceof TypeError && error.message.includes('fetch')) {
+              console.warn('Fetch error suppressed from toast:', error.message);
+              return;
+            }
+
+            // Don't show toasts for CORS-related errors
+            if (error instanceof Error && error.message.includes('CORS')) {
+              console.warn('CORS error suppressed from toast:', error.message);
+              return;
+            }
+
+            // Don't show toasts for connectivity issues
+            if (error instanceof Error && error.message.includes('connect to the server')) {
+              console.warn('Connectivity error suppressed from toast:', error.message);
               return;
             }
 

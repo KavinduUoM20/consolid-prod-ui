@@ -72,8 +72,6 @@ async function fetchTemplates(): Promise<ApiTemplate[]> {
         throw new Error('Templates endpoint not found. Please check if the API endpoint is available.');
       } else if (response.status === 403) {
         throw new Error('Access denied. Please check your authentication.');
-      } else if (response.status >= 500) {
-        throw new Error(`Server error: ${response.status} ${response.statusText}. Please try again later.`);
       } else {
         throw new Error(`Failed to fetch templates: ${response.status} ${response.statusText}`);
       }
@@ -104,23 +102,18 @@ export function useTemplates() {
     queryKey: ['templates'],
     queryFn: fetchTemplates,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false, // Disable refetch on window focus
+    refetchOnMount: true, // Only refetch when component mounts
+    refetchOnReconnect: false, // Disable refetch on reconnect
     retry: (failureCount, error) => {
       // Don't retry on 4xx errors (client errors)
       if (error instanceof Error && error.message.includes('4')) {
         return false;
       }
-      // Don't retry on network/CORS errors
-      if (error instanceof Error && error.message.includes('Network error')) {
-        return false;
-      }
-      // Don't retry on 5xx server errors that are likely temporary
-      if (error instanceof Error && error.message.includes('5')) {
-        return failureCount < 1; // Only retry once for server errors
-      }
-      // Retry up to 2 times for other errors
-      return failureCount < 2;
+      // Retry up to 3 times for other errors
+      return failureCount < 3;
     },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Shorter exponential backoff
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
   });
 }
 
