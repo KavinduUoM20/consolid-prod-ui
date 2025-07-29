@@ -107,6 +107,8 @@ export function ProcessExtractionContent() {
             // Also store in localStorage to ensure persistence across navigation
             localStorage.setItem('dociq_extraction_results', JSON.stringify(result.data.result));
             console.log('Stored extraction results in localStorage');
+          } else {
+            console.log('No result data in response:', result.data);
           }
           
           // Show success message with the response message
