@@ -78,10 +78,13 @@ export function useExtractionMapping() {
       const data = await response.json();
       console.log('Mapping API Response data:', data);
 
-      return {
+      const responseToReturn = {
         success: true,
         data
       };
+      
+      console.log('Returning response:', responseToReturn);
+      return responseToReturn;
 
     } catch (error) {
       console.error('Error starting mapping:', error);

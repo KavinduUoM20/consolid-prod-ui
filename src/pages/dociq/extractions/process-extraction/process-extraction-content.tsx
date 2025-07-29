@@ -19,6 +19,14 @@ export function ProcessExtractionContent() {
   const hasTriggeredMapping = useRef(false);
   const hasNavigatedToResults = useRef(false);
   const mappingInProgress = useRef(false);
+  const isMounted = useRef(true);
+
+  // Set up cleanup for component unmount
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   // Trigger mapping API call when component mounts - only once
   useEffect(() => {
@@ -49,25 +57,36 @@ export function ProcessExtractionContent() {
       try {
         const result = await startMapping(documentDetails.extraction_id!);
 
+        console.log('Mapping result:', result);
+        console.log('Result success:', result.success);
+        console.log('Result data:', result.data);
+
         if (result.success) {
+          console.log('Mapping successful, proceeding with navigation...');
+          
           // Store the results data from the mapping response
           if (result.data?.result) {
+            console.log('Setting extraction results:', result.data.result);
             setExtractionResults(result.data.result);
           }
           
           // Show success message with the response message
           const message = result.data?.message || 'Mapping process completed successfully!';
+          console.log('Showing success message:', message);
           toast.success(message);
           updateStatus('completed');
           
           // Navigate to results page immediately since we have the data
-          setTimeout(() => {
-            if (!hasNavigatedToResults.current) {
-              hasNavigatedToResults.current = true;
-              navigate('/dociq/extractions/extraction-results');
-            }
-          }, 1000); // Short delay for better UX
+          console.log('Navigating to extraction results page immediately...');
+          console.log('Component mounted:', isMounted.current);
+          if (isMounted.current) {
+            hasNavigatedToResults.current = true;
+            navigate('/dociq/extractions/extraction-results');
+          } else {
+            console.log('Component unmounted, cannot navigate');
+          }
         } else {
+          console.log('Mapping failed:', result.error);
           toast.error(result.error || 'Failed to start mapping process');
           updateStatus('pending');
         }
@@ -129,6 +148,7 @@ export function ProcessExtractionContent() {
           <Button 
             onClick={() => {
               if (documentDetails?.extraction_id) {
+                console.log('Manual navigation test - navigating to extraction results');
                 navigate('/dociq/extractions/extraction-results');
               } else {
                 toast.error('No extraction data available');
