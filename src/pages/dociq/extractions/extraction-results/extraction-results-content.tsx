@@ -6,13 +6,14 @@ import { useEffect } from 'react';
 
 export function ExtractionResultsContent() {
   const { documentDetails } = useDocumentStorage();
-  const { extractionResults } = useExtractionResultsContext();
+  const { extractionResults, isLoading } = useExtractionResultsContext();
 
   // Debug logging
   useEffect(() => {
     console.log('ExtractionResultsContent mounted');
     console.log('documentDetails:', documentDetails);
     console.log('extractionResults from context:', extractionResults);
+    console.log('isLoading from context:', isLoading);
     
     // Check localStorage directly
     const storedResults = localStorage.getItem('dociq_extraction_results');
@@ -26,7 +27,33 @@ export function ExtractionResultsContent() {
         console.error('Error parsing localStorage results:', error);
       }
     }
-  }, [documentDetails, extractionResults]);
+  }, [documentDetails, extractionResults, isLoading]);
+
+  // Show loading state while context is loading data
+  if (isLoading) {
+    console.log('Context is loading, showing loading state');
+    return (
+      <div className="grid xl:grid-cols-3 gap-5 lg:gap-9">
+        <div className="lg:col-span-2 space-y-5">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                Loading Results...
+              </h3>
+              <p className="text-muted-foreground">
+                Loading extraction results from storage...
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="lg:col-span-1">
+          <div className="space-y-5">
+            <Extraction step="extraction-results" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Show error if no document details
   if (!documentDetails?.extraction_id) {
