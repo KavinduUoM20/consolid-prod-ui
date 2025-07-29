@@ -122,9 +122,11 @@ export function ProcessExtractionContent() {
           console.log('Component mounted:', isMounted.current);
           if (isMounted.current && !isCancelled) {
             hasNavigatedToResults.current = true;
+            // Navigate immediately to prevent cleanup from interfering
             navigate('/dociq/extractions/extraction-results');
+            console.log('Navigation triggered successfully');
           } else {
-            console.log('Component unmounted, cannot navigate');
+            console.log('Component unmounted or cancelled, cannot navigate');
           }
         } else {
           console.log('Mapping failed:', result.error);
@@ -156,7 +158,7 @@ export function ProcessExtractionContent() {
       hasNavigatedToResults.current = false;
       mappingInProgress.current = false;
     };
-  }, [documentDetails?.extraction_id, documentLoading, startMapping, setExtractionResults, updateStatus, navigate]); // Add missing dependencies
+  }, [documentDetails?.extraction_id, documentLoading]); // Only depend on these stable values
 
   // Show loading state while document details are being loaded
   if (documentLoading) {
