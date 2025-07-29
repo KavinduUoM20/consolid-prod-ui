@@ -2,13 +2,35 @@ import { Extraction } from '../select-template/components/order';
 import { ExtractionMappingTable } from './components/extraction-mapping-table';
 import { useDocumentStorage } from '../hooks/use-document-storage';
 import { useExtractionResultsContext } from '../context/extraction-results-context';
+import { useEffect } from 'react';
 
 export function ExtractionResultsContent() {
   const { documentDetails } = useDocumentStorage();
   const { extractionResults } = useExtractionResultsContext();
 
+  // Debug logging
+  useEffect(() => {
+    console.log('ExtractionResultsContent mounted');
+    console.log('documentDetails:', documentDetails);
+    console.log('extractionResults from context:', extractionResults);
+    
+    // Check localStorage directly
+    const storedResults = localStorage.getItem('dociq_extraction_results');
+    console.log('Stored results from localStorage:', storedResults);
+    
+    if (storedResults) {
+      try {
+        const parsed = JSON.parse(storedResults);
+        console.log('Parsed localStorage results:', parsed);
+      } catch (error) {
+        console.error('Error parsing localStorage results:', error);
+      }
+    }
+  }, [documentDetails, extractionResults]);
+
   // Show error if no document details
   if (!documentDetails?.extraction_id) {
+    console.log('No document details found, showing error message');
     return (
       <div className="grid xl:grid-cols-3 gap-5 lg:gap-9">
         <div className="lg:col-span-2 space-y-5">
@@ -34,6 +56,7 @@ export function ExtractionResultsContent() {
 
   // Show loading state if no results available
   if (!extractionResults) {
+    console.log('No extraction results found, showing loading message');
     return (
       <div className="grid xl:grid-cols-3 gap-5 lg:gap-9">
         <div className="lg:col-span-2 space-y-5">
@@ -56,6 +79,8 @@ export function ExtractionResultsContent() {
       </div>
     );
   }
+
+  console.log('Rendering extraction results table with data:', extractionResults);
 
   return (
     <div className="grid xl:grid-cols-3 gap-5 lg:gap-9">

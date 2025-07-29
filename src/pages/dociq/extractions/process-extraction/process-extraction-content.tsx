@@ -156,7 +156,7 @@ export function ProcessExtractionContent() {
       hasNavigatedToResults.current = false;
       mappingInProgress.current = false;
     };
-  }, [documentDetails?.extraction_id, documentLoading]); // Only depend on these stable values
+  }, [documentDetails?.extraction_id, documentLoading, startMapping, setExtractionResults, updateStatus, navigate]); // Add missing dependencies
 
   // Show loading state while document details are being loaded
   if (documentLoading) {
