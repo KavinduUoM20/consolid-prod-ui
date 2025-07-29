@@ -4,21 +4,27 @@ import { Button } from '@/components/ui/button';
 import { FileUploader } from '../../components/common/file-uploader';
 import { Extraction } from '../select-template/components/order';
 import { extractDocumentDetails } from './utils/document-utils';
-import { useDocumentStorage } from '../hooks/use-document-storage';
+import { useExtractionSession } from '../context/extraction-session-context';
 import { useDocumentUpload } from '../hooks/use-document-upload';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
 export function UploadDocumentContent() {
-  const { documentDetails, setDocumentDetails } = useDocumentStorage();
+  const { session, startNewSession, updateDocumentDetails, isLoading } = useExtractionSession();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const { uploadDocument, isUploading } = useDocumentUpload();
   const navigate = useNavigate();
 
+  // Start a new session when component mounts
+  useEffect(() => {
+    if (!session) {
+      startNewSession();
+    }
+  }, [session, startNewSession]);
+
   const handleFileSelect = (files: File[]) => {
     console.log('Selected files:', files);
-    const details = extractDocumentDetails(files);
-    setDocumentDetails(details);
+    setSelectedFiles(files);
   };
 
   const handleSelectTemplate = async () => {
@@ -33,10 +39,12 @@ export function UploadDocumentContent() {
       // Extract extraction_id from the response
       const extractionId = result.data?.extraction_id;
       
-      // Update document details with extraction_id
+      // Update session with document details
       if (extractionId) {
-        const updatedDetails = extractDocumentDetails(selectedFiles, extractionId);
-        setDocumentDetails(updatedDetails);
+        const documentDetails = extractDocumentDetails(selectedFiles, extractionId);
+        if (documentDetails) {
+          updateDocumentDetails(documentDetails);
+        }
       }
       
       // Show success message
@@ -50,23 +58,26 @@ export function UploadDocumentContent() {
     }
   };
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold text-foreground mb-2">
+            Loading...
+          </h3>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 lg:gap-9 mb-5 lg:mb-10">
-      <div className="col-span-2 space-y-5">
-        <div className="grid sm:grid-cols-1 gap-5">
-          <FileUploader 
-            multiple={true}
-            acceptedTypes={['.pdf', '.xlsx', '.xls', '.doc', '.docx', '.jpg', '.jpeg', '.png']}
-            onFileSelect={handleFileSelect}
-            selectedFiles={selectedFiles}
-            onSelectedFilesChange={setSelectedFiles}
-          />
+    <div className="grid xl:grid-cols-3 gap-5 lg:gap-9 mb-5 lg:mb-10">
+      <div className="lg:col-span-2 space-y-5">
+        <div className="grid sm:grid-cols-2 gap-5">
+          <FileUploader onFileSelect={handleFileSelect} />
         </div>
         <div className="flex justify-end items-center flex-wrap gap-3">
-          <Button variant="outline">
-            <Link to="/dociq/home">Cancel</Link>
-          </Button>
-
           <Button 
             onClick={handleSelectTemplate}
             disabled={isUploading || selectedFiles.length === 0}
@@ -77,7 +88,7 @@ export function UploadDocumentContent() {
         </div>
       </div>
 
-      <div className="col-span-1">
+      <div className="lg:col-span-1">
         <div className="space-y-5">
           <Extraction step="upload" />
         </div>

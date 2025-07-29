@@ -1,6 +1,5 @@
 import { ReactNode } from 'react';
-import { TemplateProvider } from './context/template-context';
-import { ProcessingProvider } from './context/processing-context';
+import { ExtractionSessionProvider } from './context/extraction-session-context';
 
 interface ExtractionLayoutProps {
   children: ReactNode;
@@ -8,10 +7,8 @@ interface ExtractionLayoutProps {
 
 export function ExtractionLayout({ children }: ExtractionLayoutProps) {
   return (
-    <TemplateProvider>
-      <ProcessingProvider>
-        {children}
-      </ProcessingProvider>
-    </TemplateProvider>
+    <ExtractionSessionProvider>
+      {children}
+    </ExtractionSessionProvider>
   );
 } 
