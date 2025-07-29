@@ -16,6 +16,7 @@ interface ExtractionResultsContextType {
   extractionResults: ExtractionResult | null;
   setExtractionResults: (results: ExtractionResult | null) => void;
   clearExtractionResults: () => void;
+  isLoading: boolean;
 }
 
 const ExtractionResultsContext = createContext<ExtractionResultsContextType | undefined>(undefined);
@@ -26,6 +27,7 @@ interface ExtractionResultsProviderProps {
 
 export function ExtractionResultsProvider({ children }: ExtractionResultsProviderProps) {
   const [extractionResults, setExtractionResults] = useState<ExtractionResult | null>(null);
+  const [isLoading, setIsLoading] = useState(true); // Add loading state
 
   // Load extraction results from localStorage on mount
   useEffect(() => {
@@ -46,6 +48,7 @@ export function ExtractionResultsProvider({ children }: ExtractionResultsProvide
     } else {
       console.log('ExtractionResultsProvider: No stored results found in localStorage');
     }
+    setIsLoading(false); // Set loading to false after data is loaded
   }, []);
 
   const clearExtractionResults = () => {
@@ -62,6 +65,7 @@ export function ExtractionResultsProvider({ children }: ExtractionResultsProvide
         extractionResults,
         setExtractionResults,
         clearExtractionResults,
+        isLoading, // Pass loading state to context
       }}
     >
       {children}
