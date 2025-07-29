@@ -7,12 +7,8 @@ export function ExtractionResultsContent() {
   const { documentDetails } = useDocumentStorage();
   const { extractionResults } = useExtractionResultsContext();
 
-  console.log('ExtractionResultsContent - documentDetails:', documentDetails);
-  console.log('ExtractionResultsContent - extractionResults:', extractionResults);
-
   // Show error if no document details
   if (!documentDetails?.extraction_id) {
-    console.log('No document details found, showing error state');
     return (
       <div className="grid xl:grid-cols-3 gap-5 lg:gap-9">
         <div className="lg:col-span-2 space-y-5">
@@ -38,7 +34,6 @@ export function ExtractionResultsContent() {
 
   // Show loading state if no results available
   if (!extractionResults) {
-    console.log('No extraction results found, showing loading state');
     return (
       <div className="grid xl:grid-cols-3 gap-5 lg:gap-9">
         <div className="lg:col-span-2 space-y-5">
@@ -62,7 +57,6 @@ export function ExtractionResultsContent() {
     );
   }
 
-  console.log('Rendering extraction results with data:', extractionResults);
   return (
     <div className="grid xl:grid-cols-3 gap-5 lg:gap-9">
       <div className="lg:col-span-2 space-y-5">

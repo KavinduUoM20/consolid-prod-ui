@@ -33,7 +33,6 @@ export function ExtractionResultsProvider({ children }: ExtractionResultsProvide
     if (storedResults) {
       try {
         const parsedResults = JSON.parse(storedResults);
-        console.log('Loaded extraction results from localStorage:', parsedResults);
         setExtractionResults(parsedResults);
       } catch (error) {
         console.error('Failed to parse stored extraction results:', error);
@@ -42,13 +41,7 @@ export function ExtractionResultsProvider({ children }: ExtractionResultsProvide
     }
   }, []);
 
-  const setExtractionResultsWithLogging = (results: ExtractionResult | null) => {
-    console.log('Setting extraction results in context:', results);
-    setExtractionResults(results);
-  };
-
   const clearExtractionResults = () => {
-    console.log('Clearing extraction results from context');
     setExtractionResults(null);
     localStorage.removeItem('dociq_extraction_results');
   };
@@ -57,7 +50,7 @@ export function ExtractionResultsProvider({ children }: ExtractionResultsProvide
     <ExtractionResultsContext.Provider
       value={{
         extractionResults,
-        setExtractionResults: setExtractionResultsWithLogging,
+        setExtractionResults,
         clearExtractionResults,
       }}
     >
@@ -67,11 +60,8 @@ export function ExtractionResultsProvider({ children }: ExtractionResultsProvide
 }
 
 export function useExtractionResultsContext() {
-  console.log('useExtractionResultsContext called');
   const context = useContext(ExtractionResultsContext);
-  console.log('Context value:', context);
   if (context === undefined) {
-    console.error('useExtractionResultsContext must be used within an ExtractionResultsProvider');
     throw new Error('useExtractionResultsContext must be used within an ExtractionResultsProvider');
   }
   return context;

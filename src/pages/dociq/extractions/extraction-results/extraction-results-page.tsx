@@ -17,16 +17,62 @@ import { useDocumentStorage } from '../hooks/use-document-storage';
 import { useExtractionResultsContext } from '../context/extraction-results-context';
 
 export function ExtractionResultsPage() {
-  console.log('=== ExtractionResultsPage START ===');
-  console.log('ExtractionResultsPage component is rendering...');
-  
-  // Minimal test - just return a simple div
-  console.log('Rendering minimal test component');
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const { documentDetails } = useDocumentStorage();
+  const { extractionResults } = useExtractionResultsContext();
+
+  // Transform API results to modal data
+  const extractionData = extractionResults ? {
+    extractionId: documentDetails?.extraction_id || 'Unknown',
+    extractionDate: new Date(extractionResults.created_at).toLocaleDateString(),
+    template: 'Invoice Processing Template', // This could come from template context
+    documentType: documentDetails?.type || 'PDF',
+    fields: extractionResults.target_mappings.map((mapping: any) => ({
+      standardField: mapping.target_field,
+      documentField: mapping.target_value || 'Not found',
+      confidence: mapping.target_confidence || 0,
+    }))
+  } : {
+    extractionId: 'Unknown',
+    extractionDate: 'Unknown',
+    template: 'Unknown',
+    documentType: 'Unknown',
+    fields: []
+  };
+
   return (
-    <div style={{ padding: '20px', backgroundColor: 'lightblue', minHeight: '100vh' }}>
-      <h1 style={{ color: 'red', fontSize: '24px' }}>EXTRACTION RESULTS PAGE LOADED!</h1>
-      <p>If you can see this, the page is working!</p>
-      <p>Timestamp: {new Date().toLocaleString()}</p>
-    </div>
+    <Fragment>
+      <Steps currentStep={3} />
+      <Container>
+        <Toolbar>
+          <ToolbarHeading>
+            <ToolbarPageTitle />
+            <ToolbarDescription>
+              Extraction results are ready
+            </ToolbarDescription>
+          </ToolbarHeading>
+          <ToolbarActions>
+            <SaveResultsModal
+              open={saveModalOpen}
+              onOpenChange={setSaveModalOpen}
+              extractionData={extractionData}
+              trigger={
+                <Button variant="outline">
+                  <Captions />
+                  Save Results
+                </Button>
+              }
+            />
+            <Button>
+              <Captions />
+              <Link to="/dociq/extractions/upload-document">New Extraction</Link>
+            </Button>
+          </ToolbarActions>
+        </Toolbar>
+      </Container>
+      <Container>
+        <ExtractionResultsContent />
+      </Container>
+    </Fragment>
   );
 } 

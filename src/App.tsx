@@ -1,5 +1,6 @@
 import { AppRouting } from '@/routing/app-routing';
 import { HelmetProvider } from 'react-helmet-async';
+import { QueryClient, QueryClientProvider } from 'react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { LoadingBarContainer } from 'react-top-loading-bar';
 import { Toaster } from '@/components/ui/sonner';
@@ -14,28 +15,32 @@ import { TooltipsProvider } from './providers/tooltips-provider';
 const { BASE_URL } = import.meta.env;
 
 export function App() {
+  const queryClient = new QueryClient();
+
   return (
-    <AuthProvider>
-      <SettingsProvider>
-        <ThemeProvider>
-          <I18nProvider>
-            <HelmetProvider>
-              <TooltipsProvider>
-                <QueryProvider>
-                  <LoadingBarContainer>
-                    <BrowserRouter basename={BASE_URL}>
-                      <Toaster />
-                      <ModulesProvider>
-                        <AppRouting />
-                      </ModulesProvider>
-                    </BrowserRouter>
-                  </LoadingBarContainer>
-                </QueryProvider>
-              </TooltipsProvider>
-            </HelmetProvider>
-          </I18nProvider>
-        </ThemeProvider>
-      </SettingsProvider>
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <SettingsProvider>
+          <ThemeProvider>
+            <I18nProvider>
+              <HelmetProvider>
+                <TooltipsProvider>
+                  <QueryProvider>
+                    <LoadingBarContainer>
+                      <BrowserRouter basename={BASE_URL}>
+                        <Toaster />
+                        <ModulesProvider>
+                          <AppRouting />
+                        </ModulesProvider>
+                      </BrowserRouter>
+                    </LoadingBarContainer>
+                  </QueryProvider>
+                </TooltipsProvider>
+              </HelmetProvider>
+            </I18nProvider>
+          </ThemeProvider>
+        </SettingsProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
