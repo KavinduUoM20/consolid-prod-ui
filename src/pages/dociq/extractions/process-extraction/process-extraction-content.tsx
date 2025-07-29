@@ -68,6 +68,10 @@ export function ProcessExtractionContent() {
           if (result.data?.result) {
             console.log('Setting extraction results:', result.data.result);
             setExtractionResults(result.data.result);
+            
+            // Also store in localStorage to ensure persistence across navigation
+            localStorage.setItem('dociq_extraction_results', JSON.stringify(result.data.result));
+            console.log('Stored extraction results in localStorage');
           }
           
           // Show success message with the response message
