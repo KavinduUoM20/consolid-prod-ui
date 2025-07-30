@@ -394,33 +394,41 @@ export function AppRoutingSetup() {
           <Route
             path="/dociq/extractions/upload-document"
             element={
-              <ExtractionLayout>
-                <DociqUploadDocumentPage />
-              </ExtractionLayout>
+              <ExtractionResultsProvider>
+                <ExtractionLayout>
+                  <DociqUploadDocumentPage />
+                </ExtractionLayout>
+              </ExtractionResultsProvider>
             }
           />
           <Route
             path="/dociq/extractions/select-template"
             element={
-              <ExtractionLayout>
-                <DociqSelectTemplatePage />
-              </ExtractionLayout>
+              <ExtractionResultsProvider>
+                <ExtractionLayout>
+                  <DociqSelectTemplatePage />
+                </ExtractionLayout>
+              </ExtractionResultsProvider>
             }
           />
           <Route
             path="/dociq/extractions/process-extraction"
             element={
-              <ExtractionLayout>
-                <DociqProcessExtractionPage />
-              </ExtractionLayout>
+              <ExtractionResultsProvider>
+                <ExtractionLayout>
+                  <DociqProcessExtractionPage />
+                </ExtractionLayout>
+              </ExtractionResultsProvider>
             }
           />
           <Route
             path="/dociq/extractions/extraction-results"
             element={
-              <ExtractionLayout>
-                <DociqExtractionResultsPage />
-              </ExtractionLayout>
+              <ExtractionResultsProvider>
+                <ExtractionLayout>
+                  <DociqExtractionResultsPage />
+                </ExtractionLayout>
+              </ExtractionResultsProvider>
             }
           />
           <Route path="/store-admin/dashboard" element={<DashboardPage />} />
