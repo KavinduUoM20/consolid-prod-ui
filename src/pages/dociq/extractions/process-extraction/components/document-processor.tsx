@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { FileText, CheckCircle, Clock, Zap } from 'lucide-react';
 import { useProcessingContext } from '../../context/processing-context';
+import { Button } from '@/components/ui/button';
 
 interface ProcessingStep {
   id: string;
@@ -16,8 +17,42 @@ interface ProcessingStep {
 }
 
 export function DocumentProcessor() {
-  const { processingState, updateProgress, updateCurrentStep, updateTimeElapsed, updateEstimatedTime } = useProcessingContext();
+  const { processingState, updateProgress, updateCurrentStep, updateTimeElapsed, updateEstimatedTime, updateStatus } = useProcessingContext();
   const { progress, currentStep, status } = processingState;
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isProcessingRef = useRef(false);
+  const currentProgressRef = useRef(progress);
+  const currentStepRef = useRef(currentStep);
+  const [error, setError] = useState<string | null>(null);
+
+  // Update refs when state changes
+  useEffect(() => {
+    currentProgressRef.current = progress;
+    currentStepRef.current = currentStep;
+  }, [progress, currentStep]);
+
+  // Error recovery function
+  const handleError = useCallback((errorMessage: string) => {
+    console.error('DocumentProcessor error:', errorMessage);
+    setError(errorMessage);
+    
+    // Clean up any running intervals
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    isProcessingRef.current = false;
+    
+    // Reset to a safe state
+    updateStatus('pending');
+  }, [updateStatus]);
+
+  // Clear error when status changes
+  useEffect(() => {
+    if (error && status === 'processing') {
+      setError(null);
+    }
+  }, [status, error]);
 
   const processingSteps: ProcessingStep[] = [
     {
@@ -52,42 +87,74 @@ export function DocumentProcessor() {
 
   // Update progress based on actual mapping status
   useEffect(() => {
-    if (status === 'processing') {
+    
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    if (status === 'processing' && !isProcessingRef.current) {
+      isProcessingRef.current = true;
+      
       // Start with 25% when processing begins
-      if (progress < 25) {
+      if (currentProgressRef.current < 25) {
         updateProgress(25);
         updateCurrentStep(1);
       }
       
       // Simulate progress to 100% over 3 seconds
-      const interval = setInterval(() => {
-        if (progress >= 100) {
-          clearInterval(interval);
-          return;
+      intervalRef.current = setInterval(() => {
+        try {
+          const currentProgress = currentProgressRef.current;
+          const currentStepValue = currentStepRef.current;
+          
+          if (currentProgress >= 100) {
+            if (intervalRef.current) {
+              clearInterval(intervalRef.current);
+              intervalRef.current = null;
+            }
+            isProcessingRef.current = false;
+            return;
+          }
+          
+          const newProgress = Math.min(currentProgress + 15, 100);
+          updateProgress(newProgress);
+          
+          // Update steps based on progress
+          if (newProgress >= 50 && currentStepValue === 1) {
+            updateCurrentStep(2);
+          } else if (newProgress >= 75 && currentStepValue === 2) {
+            updateCurrentStep(3);
+          }
+          
+          // Update time elapsed
+          updateTimeElapsed(Math.floor(newProgress / 10));
+          updateEstimatedTime(Math.max(1, Math.floor((100 - newProgress) / 10)));
+        } catch (error) {
+          console.error('Error in progress simulation:', error);
+          handleError('Progress simulation failed. Please try again.');
         }
-        
-        const newProgress = Math.min(progress + 15, 100);
-        updateProgress(newProgress);
-        
-        // Update steps based on progress
-        if (newProgress >= 50 && currentStep === 1) {
-          updateCurrentStep(2);
-        } else if (newProgress >= 75 && currentStep === 2) {
-          updateCurrentStep(3);
-        }
-        
-        // Update time elapsed
-        updateTimeElapsed(Math.floor(newProgress / 10));
-        updateEstimatedTime(Math.max(1, Math.floor((100 - newProgress) / 10)));
       }, 500);
-
-      return () => clearInterval(interval);
     } else if (status === 'completed') {
       // Set to 100% when completed
       updateProgress(100);
       updateCurrentStep(3);
+      isProcessingRef.current = false;
+    } else if (status === 'pending') {
+      // Reset when pending
+      isProcessingRef.current = false;
     }
-  }, [status, progress, currentStep, updateProgress, updateCurrentStep, updateTimeElapsed, updateEstimatedTime]);
+
+    // Cleanup function
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      isProcessingRef.current = false;
+    };
+  }, [status, updateProgress, updateCurrentStep, updateTimeElapsed, updateEstimatedTime, updateStatus, handleError]);
 
   const getStepStatus = (index: number): ProcessingStep['status'] => {
     if (index < currentStep) return 'completed';
@@ -119,6 +186,28 @@ export function DocumentProcessor() {
 
   return (
     <div className="space-y-6">
+      {/* Error Display */}
+      {error && (
+        <Card className="bg-red-50 border-red-200">
+          <CardHeader className="px-5">
+            <CardTitle className="text-sm text-red-800">Processing Error</CardTitle>
+          </CardHeader>
+          <CardContent className="px-5">
+            <p className="text-sm text-red-700 mb-3">{error}</p>
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => {
+                setError(null);
+                updateStatus('processing');
+              }}
+            >
+              Retry Processing
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Progress Overview */}
       <Card className="bg-accent/50">
         <CardHeader className="px-5">

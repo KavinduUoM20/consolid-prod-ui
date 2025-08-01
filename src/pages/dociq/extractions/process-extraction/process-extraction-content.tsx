@@ -24,7 +24,6 @@ export function ProcessExtractionContent() {
   // Set up cleanup for component unmount
   useEffect(() => {
     return () => {
-      console.log('Process extraction component unmounting...');
       isMounted.current = false;
     };
   }, []);
@@ -32,7 +31,6 @@ export function ProcessExtractionContent() {
   // Add a check to prevent mapping if user navigates away
   useEffect(() => {
     const handleBeforeUnload = () => {
-      console.log('User navigating away, cancelling mapping process');
       isMounted.current = false;
     };
 
@@ -70,13 +68,14 @@ export function ProcessExtractionContent() {
       hasTriggeredMapping.current = true;
       mappingInProgress.current = true;
 
-      console.log('Starting mapping process for extraction:', documentDetails.extraction_id);
+      // Set status to processing to start the progress simulation
+      updateStatus('processing');
       
       // Add a timeout to prevent indefinite blocking
       timeoutId = setTimeout(() => {
         if (!isCancelled) {
-          console.log('Mapping timeout reached, allowing manual navigation');
           mappingInProgress.current = false;
+          updateStatus('pending');
         }
       }, 30000); // 30 second timeout
       
@@ -88,48 +87,33 @@ export function ProcessExtractionContent() {
 
         // Check if component was unmounted during the API call
         if (isCancelled || !isMounted.current) {
-          console.log('Component unmounted during API call, cancelling navigation');
           return;
         }
 
-        console.log('Mapping result:', result);
-        console.log('Result success:', result.success);
-        console.log('Result data:', result.data);
-
         if (result.success) {
-          console.log('Mapping successful, proceeding with navigation...');
-          
           // Store the results data from the mapping response
           if (result.data?.result) {
-            console.log('Setting extraction results:', result.data.result);
             setExtractionResults(result.data.result);
             
             // Also store in localStorage to ensure persistence across navigation
             localStorage.setItem('dociq_extraction_results', JSON.stringify(result.data.result));
-            console.log('Stored extraction results in localStorage');
-          } else {
-            console.log('No result data in response:', result.data);
           }
           
           // Show success message with the response message
           const message = result.data?.message || 'Mapping process completed successfully!';
-          console.log('Showing success message:', message);
           toast.success(message);
           updateStatus('completed');
           
           // Navigate to results page immediately since we have the data
-          console.log('Navigating to extraction results page immediately...');
-          console.log('Component mounted:', isMounted.current);
-          if (isMounted.current && !isCancelled) {
-            hasNavigatedToResults.current = true;
-            // Navigate immediately to prevent cleanup from interfering
-            navigate('/dociq/extractions/extraction-results');
-            console.log('Navigation triggered successfully');
-          } else {
-            console.log('Component unmounted or cancelled, cannot navigate');
-          }
+          // Add a small delay to ensure state updates are processed
+          setTimeout(() => {
+            if (isMounted.current && !isCancelled && !hasNavigatedToResults.current) {
+              hasNavigatedToResults.current = true;
+              // Navigate immediately to prevent cleanup from interfering
+              navigate('/dociq/extractions/extraction-results');
+            }
+          }, 100);
         } else {
-          console.log('Mapping failed:', result.error);
           toast.error(result.error || 'Failed to start mapping process');
           updateStatus('pending');
         }
@@ -151,7 +135,6 @@ export function ProcessExtractionContent() {
 
     // Cleanup function to reset the flags when component unmounts
     return () => {
-      console.log('Process extraction component unmounting, cleaning up...');
       isCancelled = true;
       clearTimeout(timeoutId);
       hasTriggeredMapping.current = false;
@@ -198,7 +181,6 @@ export function ProcessExtractionContent() {
           <Button 
             onClick={() => {
               if (documentDetails?.extraction_id) {
-                console.log('Manual navigation test - navigating to extraction results');
                 navigate('/dociq/extractions/extraction-results');
               } else {
                 toast.error('No extraction data available');

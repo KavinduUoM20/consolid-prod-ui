@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 
 interface ProcessingState {
   progress: number;
@@ -34,47 +34,47 @@ export function ProcessingProvider({ children }: ProcessingProviderProps) {
     estimatedTime: 20,
     stepsCompleted: 1,
     totalSteps: 4,
-    status: 'processing',
+    status: 'pending',
   });
 
-  const updateProgress = (progress: number) => {
+  const updateProgress = useCallback((progress: number) => {
     setProcessingState(prev => ({
       ...prev,
       progress: Math.min(progress, 100),
       status: progress >= 100 ? 'completed' : 'processing',
     }));
-  };
+  }, []);
 
-  const updateCurrentStep = (step: number) => {
+  const updateCurrentStep = useCallback((step: number) => {
     setProcessingState(prev => ({
       ...prev,
       currentStep: step,
       stepsCompleted: step + 1,
     }));
-  };
+  }, []);
 
-  const updateTimeElapsed = (time: number) => {
+  const updateTimeElapsed = useCallback((time: number) => {
     setProcessingState(prev => ({
       ...prev,
       timeElapsed: time,
     }));
-  };
+  }, []);
 
-  const updateEstimatedTime = (time: number) => {
+  const updateEstimatedTime = useCallback((time: number) => {
     setProcessingState(prev => ({
       ...prev,
       estimatedTime: time,
     }));
-  };
+  }, []);
 
-  const updateStatus = (status: ProcessingState['status']) => {
+  const updateStatus = useCallback((status: ProcessingState['status']) => {
     setProcessingState(prev => ({
       ...prev,
       status,
     }));
-  };
+  }, []);
 
-  const resetProcessing = () => {
+  const resetProcessing = useCallback(() => {
     setProcessingState({
       progress: 0,
       currentStep: 0,
@@ -82,9 +82,9 @@ export function ProcessingProvider({ children }: ProcessingProviderProps) {
       estimatedTime: 20,
       stepsCompleted: 1,
       totalSteps: 4,
-      status: 'processing',
+      status: 'pending',
     });
-  };
+  }, []);
 
   return (
     <ProcessingContext.Provider
