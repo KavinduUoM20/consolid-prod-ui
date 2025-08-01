@@ -31,33 +31,24 @@ export function ExtractionResultsProvider({ children }: ExtractionResultsProvide
 
   // Load extraction results from localStorage on mount
   useEffect(() => {
-    console.log('ExtractionResultsProvider: Loading from localStorage...');
     const storedResults = localStorage.getItem('dociq_extraction_results');
-    console.log('ExtractionResultsProvider: Raw stored results:', storedResults);
     
     if (storedResults) {
       try {
         const parsedResults = JSON.parse(storedResults);
-        console.log('ExtractionResultsProvider: Parsed results:', parsedResults);
         setExtractionResults(parsedResults);
-        console.log('ExtractionResultsProvider: Set extraction results in state');
       } catch (error) {
         console.error('ExtractionResultsProvider: Failed to parse stored extraction results:', error);
         localStorage.removeItem('dociq_extraction_results');
       }
-    } else {
-      console.log('ExtractionResultsProvider: No stored results found in localStorage');
     }
     setIsLoading(false); // Set loading to false after data is loaded
   }, []);
 
   const clearExtractionResults = () => {
-    console.log('ExtractionResultsProvider: Clearing extraction results');
     setExtractionResults(null);
     localStorage.removeItem('dociq_extraction_results');
   };
-
-  console.log('ExtractionResultsProvider: Current extractionResults state:', extractionResults);
 
   return (
     <ExtractionResultsContext.Provider

@@ -6,13 +6,30 @@ import { Extraction } from './components/order';
 import { useDocumentStorage } from '../hooks/use-document-storage';
 import { useTemplateContext } from '../context/template-context';
 import { useTemplateProcessing } from '../hooks/use-template-processing';
+import { useExtractionResultsContext } from '../context/extraction-results-context';
+import { useProcessingContext } from '../context/processing-context';
+import { useEffect } from 'react';
 import { toast } from 'sonner';
 
 export function SelectTemplateContent() {
   const { documentDetails, isLoading: documentLoading } = useDocumentStorage();
   const { selectedTemplate } = useTemplateContext();
   const { processTemplate, isProcessing } = useTemplateProcessing();
+  const { clearExtractionResults } = useExtractionResultsContext();
+  const { resetProcessing } = useProcessingContext();
   const navigate = useNavigate();
+
+  // Clear any previous extraction results and processing state when component mounts
+  useEffect(() => {
+    resetProcessing();
+  }, [resetProcessing]);
+
+  const handleBackToUpload = () => {
+    // Clear all state when going back to upload
+    clearExtractionResults();
+    resetProcessing();
+    navigate('/dociq/extractions/upload-document');
+  };
 
   // Show loading state
   if (documentLoading) {
@@ -50,17 +67,12 @@ export function SelectTemplateContent() {
   }
 
   const handleProcessDocument = async () => {
-    console.log('Process Document clicked');
-    console.log('Selected template:', selectedTemplate);
-    console.log('Document details:', documentDetails);
-    
     if (!selectedTemplate) {
       toast.error('Please select a template first');
       return;
     }
 
     if (!selectedTemplate.id) {
-      console.error('Template ID is missing. Selected template:', selectedTemplate);
       toast.error('Template ID is missing. Please select a valid template.');
       return;
     }
@@ -69,6 +81,10 @@ export function SelectTemplateContent() {
       toast.error('Extraction ID is missing. Please upload a document first.');
       return;
     }
+
+    // Clear any previous extraction results before starting new extraction
+    clearExtractionResults();
+    resetProcessing();
 
     const result = await processTemplate(documentDetails.extraction_id, selectedTemplate.id);
 
@@ -92,9 +108,9 @@ export function SelectTemplateContent() {
           <Info />
         </div>
         <div className="flex justify-end items-center flex-wrap gap-3">
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleBackToUpload}>
             <MoveLeft className="text-base" />
-            <Link to="/dociq/extractions/upload-document">Upload Document</Link>
+            Upload Document
           </Button>
 
           <Button 

@@ -14,7 +14,7 @@ export function ProcessExtractionContent() {
   const { documentDetails, isLoading: documentLoading } = useDocumentStorage();
   const { startMapping, isMapping } = useExtractionMapping();
   const { updateStatus, processingState } = useProcessingContext();
-  const { setExtractionResults } = useExtractionResultsContext();
+  const { setExtractionResults, clearExtractionResults } = useExtractionResultsContext();
   const navigate = useNavigate();
   const hasTriggeredMapping = useRef(false);
   const hasNavigatedToResults = useRef(false);
@@ -68,6 +68,9 @@ export function ProcessExtractionContent() {
       hasTriggeredMapping.current = true;
       mappingInProgress.current = true;
 
+      // Clear any previous extraction results before starting new mapping
+      clearExtractionResults();
+
       // Set status to processing to start the progress simulation
       updateStatus('processing');
       
@@ -93,27 +96,59 @@ export function ProcessExtractionContent() {
         if (result.success) {
           // Store the results data from the mapping response
           if (result.data?.result) {
+            console.log('Setting extraction results:', result.data.result);
             setExtractionResults(result.data.result);
             
             // Also store in localStorage to ensure persistence across navigation
             localStorage.setItem('dociq_extraction_results', JSON.stringify(result.data.result));
-          }
-          
-          // Show success message with the response message
-          const message = result.data?.message || 'Mapping process completed successfully!';
-          toast.success(message);
-          updateStatus('completed');
-          
-          // Navigate to results page immediately since we have the data
-          // Add a small delay to ensure state updates are processed
-          setTimeout(() => {
-            if (isMounted.current && !isCancelled && !hasNavigatedToResults.current) {
-              hasNavigatedToResults.current = true;
-              // Navigate immediately to prevent cleanup from interfering
-              navigate('/dociq/extractions/extraction-results');
+            console.log('Stored extraction results in localStorage');
+            
+            // Show success message with the response message
+            const message = result.data?.message || 'Mapping process completed successfully!';
+            toast.success(message);
+            updateStatus('completed');
+            
+            // Navigate to results page after ensuring data is stored
+            setTimeout(() => {
+              if (isMounted.current && !isCancelled && !hasNavigatedToResults.current) {
+                hasNavigatedToResults.current = true;
+                console.log('Navigating to results page');
+                navigate('/dociq/extractions/extraction-results');
+              }
+            }, 500); // Increased delay to ensure state updates
+          } else {
+            console.log('No result data in response:', result.data);
+            // Try to store the entire data object if result is not available
+            if (result.data) {
+              console.log('Storing entire data object as fallback:', result.data);
+              // Extract the result part from the data structure
+              const extractionResult = {
+                id: result.data.result?.id || result.data.extraction_id,
+                target_mappings: result.data.result?.target_mappings || [],
+                overall_confidence: result.data.result?.overall_confidence || 0,
+                created_at: result.data.result?.created_at || new Date().toISOString(),
+                updated_at: result.data.result?.updated_at || new Date().toISOString(),
+              };
+              setExtractionResults(extractionResult);
+              localStorage.setItem('dociq_extraction_results', JSON.stringify(extractionResult));
+              
+              // Show success message with the response message
+              const message = result.data?.message || 'Mapping process completed successfully!';
+              toast.success(message);
+              updateStatus('completed');
+              
+              // Navigate to results page after ensuring data is stored
+              setTimeout(() => {
+                if (isMounted.current && !isCancelled && !hasNavigatedToResults.current) {
+                  hasNavigatedToResults.current = true;
+                  console.log('Navigating to results page (fallback)');
+                  navigate('/dociq/extractions/extraction-results');
+                }
+              }, 500); // Increased delay to ensure state updates
             }
-          }, 100);
+          }
         } else {
+          console.log('Mapping failed:', result.error);
           toast.error(result.error || 'Failed to start mapping process');
           updateStatus('pending');
         }
@@ -179,9 +214,28 @@ export function ProcessExtractionContent() {
           </Button>
 
           <Button 
-            onClick={() => {
+            onClick={async () => {
               if (documentDetails?.extraction_id) {
-                navigate('/dociq/extractions/extraction-results');
+                try {
+                  console.log('Manual extraction for:', documentDetails.extraction_id);
+                  const result = await startMapping(documentDetails.extraction_id);
+                  console.log('Manual extraction result:', result);
+                  if (result.success && result.data?.result) {
+                    console.log('Storing results manually:', result.data.result);
+                    setExtractionResults(result.data.result);
+                    localStorage.setItem('dociq_extraction_results', JSON.stringify(result.data.result));
+                    toast.success('Extraction completed successfully!');
+                    // Navigate to results page after storing
+                    setTimeout(() => {
+                      navigate('/dociq/extractions/extraction-results');
+                    }, 500);
+                  } else {
+                    toast.error(result.error || 'Failed to complete extraction');
+                  }
+                } catch (error) {
+                  console.error('Manual extraction error:', error);
+                  toast.error('An error occurred during extraction');
+                }
               } else {
                 toast.error('No extraction data available');
               }
