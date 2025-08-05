@@ -10,12 +10,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { templateSchema, TemplateFormValues } from '../../extractions/select-template/components/forms';
 import { Alert, AlertIcon, AlertTitle } from '@/components/ui/alert';
-import { RiCheckboxCircleFill, RiDeleteBin6Line, RiArrowLeftLine, RiSaveLine, RiAddLine, RiSettings3Line } from '@remixicon/react';
+import { RiCheckboxCircleFill, RiDeleteBin6Line, RiArrowLeftLine, RiSaveLine, RiAddLine, RiSettings3Line, RiEditLine, RiCloseLine } from '@remixicon/react';
 import { toast } from 'sonner';
 import { useTemplates, transformApiTemplateToItem } from '../../extractions/hooks/use-templates';
 import { useTemplateCreation } from '../../extractions/hooks/use-template-creation';
 import { useTemplateDeletion } from '../../extractions/hooks/use-template-deletion';
-import { FileText, Plus, Settings, Grid3X3, List, Search, Filter, MoreVertical, Eye, EyeOff, Lock, Unlock } from 'lucide-react';
+import { FileText, Plus, Settings, Grid3X3, List, Search, Filter, MoreVertical, Eye, EyeOff, Lock, Unlock, Edit3, X, Minus } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
@@ -45,6 +45,13 @@ interface FieldConfig {
   options?: string[];
 }
 
+interface FieldMapping {
+  id: string;
+  plmField: string;
+  vendorFields: string[];
+  sampleValues: string[];
+}
+
 export function MyOrders() {
   // Use the API hook to fetch templates
   const { data: apiTemplates } = useTemplates();
@@ -71,6 +78,11 @@ export function MyOrders() {
     { name: 'description', type: 'text', required: true, visible: true, editable: true },
     { name: 'lastUsed', type: 'date', required: true, visible: true, editable: true },
     { name: 'status', type: 'select', required: true, visible: true, editable: true, options: ['Active', 'Inactive', 'Draft'] },
+  ]);
+
+  // Field mapping state
+  const [fieldMappings, setFieldMappings] = useState<FieldMapping[]>([
+    { id: '1', plmField: '', vendorFields: [], sampleValues: [] }
   ]);
 
   // Update items when API data changes
@@ -105,12 +117,11 @@ export function MyOrders() {
       lastUsed: '',
       status: 'Active',
     },
-    mode: 'onChange',
   });
 
   const handleCreateTemplate = async (data: TemplateFormValues) => {
     try {
-      const result = await createTemplate({
+      await createTemplate({
         title: data.title,
         department: data.department,
         fields: data.fields,
@@ -118,91 +129,92 @@ export function MyOrders() {
         lastUsed: data.lastUsed,
         status: data.status,
       });
-
-      if (result.success) {
-        // Add the new template to the local state
-        const newTemplate: ITemplateItem = {
-          default: false,
-          title: data.title,
-          department: data.department,
-          fields: data.fields,
-          description: data.description,
-          lastUsed: data.lastUsed,
-          status: data.status,
-          id: result.data?.id || `template-${Date.now()}`,
-        };
-
-        setItems(prev => [...prev, newTemplate]);
-        setIsCreatingTemplate(false);
-        form.reset();
-
-        toast.custom(
-          (t) => (
-            <Alert
-              variant="mono"
-              icon="success"
-              onClose={() => toast.dismiss(t)}
-            >
-              <AlertIcon>
-                <RiCheckboxCircleFill />
-              </AlertIcon>
-              <AlertTitle>Template created successfully!</AlertTitle>
-            </Alert>
-          ),
-          {
-            duration: 5000,
-          }
-        );
-      } else {
-        toast.error(result.error || 'Failed to create template');
-      }
+      
+      toast.success('Template created successfully!');
+      setIsCreatingTemplate(false);
+      form.reset();
     } catch (error) {
-      toast.error('Failed to create template');
+      toast.error('Failed to create template. Please try again.');
     }
   };
 
   const handleDeleteTemplate = async (index: number) => {
-    const templateToDelete = items[index];
-    
-    if (!templateToDelete.id) {
-      toast.error('Template ID is missing');
+    const template = items[index];
+    if (!template?.id) {
+      toast.error('Cannot delete template without ID');
       return;
     }
 
     try {
-      const result = await deleteTemplate(templateToDelete.id);
-
-      if (result.success) {
-        setItems(prev => prev.filter((_, i) => i !== index));
-        
-        toast.custom(
-          (t) => (
-            <Alert
-              variant="mono"
-              icon="success"
-              onClose={() => toast.dismiss(t)}
-            >
-              <AlertIcon>
-                <RiCheckboxCircleFill />
-              </AlertIcon>
-              <AlertTitle>Template deleted successfully!</AlertTitle>
-            </Alert>
-          ),
-          {
-            duration: 5000,
-          }
-        );
-      } else {
-        toast.error(result.error || 'Failed to delete template');
-      }
+      await deleteTemplate(template.id);
+      toast.success('Template deleted successfully!');
     } catch (error) {
-      toast.error('Failed to delete template');
+      toast.error('Failed to delete template. Please try again.');
     }
+  };
+
+  const handleEditTemplate = (template: ITemplateItem) => {
+    // TODO: Implement edit functionality
+    toast.info('Edit functionality coming soon!');
   };
 
   const updateFieldConfig = (index: number, field: keyof FieldConfig, value: any) => {
     setFieldConfigs(prev => prev.map((config, i) => 
       i === index ? { ...config, [field]: value } : config
+    ));
+  };
+
+  // Field mapping functions
+  const addFieldMapping = () => {
+    const newId = (fieldMappings.length + 1).toString();
+    setFieldMappings(prev => [...prev, { id: newId, plmField: '', vendorFields: [], sampleValues: [] }]);
+  };
+
+  const removeFieldMapping = (id: string) => {
+    if (fieldMappings.length > 1) {
+      setFieldMappings(prev => prev.filter(mapping => mapping.id !== id));
+    }
+  };
+
+  const updateFieldMapping = (id: string, field: keyof FieldMapping, value: any) => {
+    setFieldMappings(prev => prev.map(mapping => 
+      mapping.id === id ? { ...mapping, [field]: value } : mapping
+    ));
+  };
+
+  const addVendorField = (mappingId: string, value: string) => {
+    if (value.trim()) {
+      setFieldMappings(prev => prev.map(mapping => 
+        mapping.id === mappingId 
+          ? { ...mapping, vendorFields: [...mapping.vendorFields, value.trim()] }
+          : mapping
+      ));
+    }
+  };
+
+  const removeVendorField = (mappingId: string, fieldIndex: number) => {
+    setFieldMappings(prev => prev.map(mapping => 
+      mapping.id === mappingId 
+        ? { ...mapping, vendorFields: mapping.vendorFields.filter((_, index) => index !== fieldIndex) }
+        : mapping
+    ));
+  };
+
+  const addSampleValue = (mappingId: string, value: string) => {
+    if (value.trim()) {
+      setFieldMappings(prev => prev.map(mapping => 
+        mapping.id === mappingId 
+          ? { ...mapping, sampleValues: [...mapping.sampleValues, value.trim()] }
+          : mapping
+      ));
+    }
+  };
+
+  const removeSampleValue = (mappingId: string, valueIndex: number) => {
+    setFieldMappings(prev => prev.map(mapping => 
+      mapping.id === mappingId 
+        ? { ...mapping, sampleValues: mapping.sampleValues.filter((_, index) => index !== valueIndex) }
+        : mapping
     ));
   };
 
@@ -214,54 +226,91 @@ export function MyOrders() {
   });
 
   const renderTemplateCard = (item: ITemplateItem, index: number) => (
-    <Card key={index} className="hover:shadow-lg transition-all duration-200 group">
-      <CardHeader className="pb-3">
+    <Card key={index} className="hover:shadow-lg transition-all duration-200 group relative">
+      {/* Status and Default Badges - Top Right */}
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+        {item.default && (
+          <Badge variant="mono" size="sm" className="shadow-sm">
+            Default
+          </Badge>
+        )}
+        <Badge 
+          variant={item.status === 'Active' ? 'success' : item.status === 'Draft' ? 'warning' : 'secondary'}
+          size="sm"
+          className="shadow-sm"
+        >
+          {item.status}
+        </Badge>
+      </div>
+
+      <CardHeader className="py-5">
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl">
-              <FileText className="h-6 w-6 text-primary" />
+          <div className="flex items-center gap-3 flex-1">
+            <div className="p-2.5 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg">
+              <FileText className="h-5 w-5 text-primary" />
             </div>
-            <div className="flex-1">
-              <CardTitle className="text-lg font-semibold">{item.title}</CardTitle>
-              <p className="text-sm text-muted-foreground">{item.department}</p>
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-base font-semibold leading-none tracking-tight">{item.title}</CardTitle>
+              <p className="text-sm text-secondary-foreground mt-1">{item.department}</p>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge 
-              variant={item.status === 'Active' ? 'success' : item.status === 'Draft' ? 'warning' : 'secondary'}
-              className="text-xs"
-            >
-              {item.status}
-            </Badge>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleDeleteTemplate(index)}
-              disabled={isDeleting}
-              className="text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <RiDeleteBin6Line className="h-4 w-4" />
-            </Button>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pt-0">
-        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{item.description}</p>
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1 text-muted-foreground">
-              <Settings className="h-3 w-3" />
+
+      <CardContent>
+        <p className="text-sm text-secondary-foreground mb-4 line-clamp-2">{item.description}</p>
+        
+        {/* Action Buttons - Bottom */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4 text-sm">
+            <span className="flex items-center gap-1.5 text-secondary-foreground">
+              <Settings className="h-3.5 w-3.5" />
               {item.fields} fields
             </span>
-            <span className="text-muted-foreground">
+            <span className="text-secondary-foreground">
               Last used: {item.lastUsed}
             </span>
           </div>
-          {item.default && (
-            <Badge variant="mono" className="text-xs">
-              Default
-            </Badge>
-          )}
+          
+          {/* Action Buttons */}
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEditTemplate(item)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Edit3 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Edit template</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteTemplate(index)}
+                    disabled={isDeleting}
+                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                  >
+                    <RiDeleteBin6Line className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Delete template</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -269,30 +318,61 @@ export function MyOrders() {
 
   const renderTemplateList = (item: ITemplateItem, index: number) => (
     <div key={index} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors group">
-      <div className="flex items-center gap-4">
-        <div className="p-2 bg-primary/10 rounded-lg">
-          <FileText className="h-5 w-5 text-primary" />
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="p-2 bg-primary/10 rounded-lg shrink-0">
+          <FileText className="h-4 w-4 text-primary" />
         </div>
-        <div className="flex-1">
-          <h3 className="font-semibold">{item.title}</h3>
-          <p className="text-sm text-muted-foreground">{item.department}</p>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-sm leading-none tracking-tight">{item.title}</h3>
+          <p className="text-sm text-secondary-foreground mt-1">{item.department}</p>
         </div>
       </div>
-      <div className="flex items-center gap-4">
-        <Badge variant={item.status === 'Active' ? 'success' : 'secondary'}>
+      <div className="flex items-center gap-3 shrink-0">
+        <Badge variant={item.status === 'Active' ? 'success' : 'secondary'} size="sm">
           {item.status}
         </Badge>
-        <span className="text-sm text-muted-foreground">{item.fields} fields</span>
-        <span className="text-sm text-muted-foreground">Last used: {item.lastUsed}</span>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => handleDeleteTemplate(index)}
-          disabled={isDeleting}
-          className="text-destructive hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-        >
-          <RiDeleteBin6Line className="h-4 w-4" />
-        </Button>
+        <span className="text-sm text-secondary-foreground">{item.fields} fields</span>
+        <span className="text-sm text-secondary-foreground">Last used: {item.lastUsed}</span>
+        
+        {/* Action Buttons */}
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleEditTemplate(item)}
+                  className="h-8 w-8 p-0"
+                >
+                  <Edit3 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Edit template</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteTemplate(index)}
+                  disabled={isDeleting}
+                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                >
+                  <RiDeleteBin6Line className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Delete template</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
     </div>
   );
@@ -314,8 +394,8 @@ export function MyOrders() {
             </Button>
             <Separator orientation="vertical" className="h-6" />
             <div>
-              <h1 className="text-2xl font-bold">Create New Template</h1>
-              <p className="text-muted-foreground">Define the structure for your document extraction</p>
+              <h1 className="text-xl font-semibold text-mono">Create New Template</h1>
+              <p className="text-sm text-secondary-foreground">Define the structure for your document extraction</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -420,217 +500,230 @@ export function MyOrders() {
           </Card>
         )}
 
-        {/* Form */}
-        <Card className="max-w-4xl mx-auto">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <RiAddLine className="h-5 w-5" />
-              Template Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={form.handleSubmit(handleCreateTemplate)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="title">Template Title</Label>
-                      <Badge variant="secondary" className="text-xs">Required</Badge>
+        {/* Main Content - 70/30 Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
+          {/* Field Mapping Section - 70% */}
+          <div className="lg:col-span-7">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Field Mapping Configuration
+                </CardTitle>
+                <p className="text-sm text-secondary-foreground">
+                  Map PLM fields to vendor fields and define sample values for extraction
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Field Mapping Rows */}
+                {fieldMappings.map((mapping, index) => (
+                  <div key={mapping.id} className="border rounded-lg p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium text-sm">Field Mapping {index + 1}</h4>
+                      {fieldMappings.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFieldMapping(mapping.id)}
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Switch 
-                        checked={fieldConfigs[0]?.required} 
-                        onCheckedChange={(checked) => updateFieldConfig(0, 'required', checked)}
-                        size="sm"
-                      />
-                      <span className="text-xs text-muted-foreground">Required</span>
-                    </div>
-                  </div>
-                  <Input
-                    id="title"
-                    {...form.register('title')}
-                    placeholder="e.g., Invoice Template, Receipt Template"
-                    className="h-11"
-                  />
-                  {form.formState.errors.title && (
-                    <p className="text-sm text-destructive">
-                      {form.formState.errors.title.message}
-                    </p>
-                  )}
-                </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* PLM Field */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">PLM Field</Label>
+                        <Input
+                          placeholder="Enter PLM field name"
+                          value={mapping.plmField}
+                          onChange={(e) => updateFieldMapping(mapping.id, 'plmField', e.target.value)}
+                        />
+                      </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="department">Department</Label>
-                      <Badge variant="secondary" className="text-xs">Required</Badge>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Switch 
-                        checked={fieldConfigs[1]?.required} 
-                        onCheckedChange={(checked) => updateFieldConfig(1, 'required', checked)}
-                        size="sm"
-                      />
-                      <span className="text-xs text-muted-foreground">Required</span>
-                    </div>
-                  </div>
-                  <Input
-                    id="department"
-                    {...form.register('department')}
-                    placeholder="e.g., Finance, HR, Operations"
-                    className="h-11"
-                  />
-                  {form.formState.errors.department && (
-                    <p className="text-sm text-destructive">
-                      {form.formState.errors.department.message}
-                    </p>
-                  )}
-                </div>
-              </div>
+                      {/* Vendor Fields */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Vendor Fields</Label>
+                        <div className="space-y-2">
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Add vendor field"
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                  addVendorField(mapping.id, e.currentTarget.value);
+                                  e.currentTarget.value = '';
+                                }
+                              }}
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                                addVendorField(mapping.id, input.value);
+                                input.value = '';
+                              }}
+                              className="shrink-0"
+                            >
+                              Add
+                            </Button>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {mapping.vendorFields.map((field, fieldIndex) => (
+                              <Badge key={fieldIndex} variant="secondary" className="gap-1">
+                                {field}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeVendorField(mapping.id, fieldIndex)}
+                                  className="h-4 w-4 p-0 hover:bg-transparent"
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="fields">Number of Fields</Label>
-                      <Badge variant="secondary" className="text-xs">Required</Badge>
+                      {/* Sample Values */}
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Sample Values</Label>
+                        <div className="space-y-2">
+                          <div className="flex gap-2">
+                            <Input
+                              placeholder="Add sample value"
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                  addSampleValue(mapping.id, e.currentTarget.value);
+                                  e.currentTarget.value = '';
+                                }
+                              }}
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                                addSampleValue(mapping.id, input.value);
+                                input.value = '';
+                              }}
+                              className="shrink-0"
+                            >
+                              Add
+                            </Button>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {mapping.sampleValues.map((value, valueIndex) => (
+                              <Badge key={valueIndex} variant="outline" className="gap-1">
+                                {value}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeSampleValue(mapping.id, valueIndex)}
+                                  className="h-4 w-4 p-0 hover:bg-transparent"
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Switch 
-                        checked={fieldConfigs[2]?.required} 
-                        onCheckedChange={(checked) => updateFieldConfig(2, 'required', checked)}
-                        size="sm"
-                      />
-                      <span className="text-xs text-muted-foreground">Required</span>
-                    </div>
                   </div>
-                  <Input
-                    id="fields"
-                    type="number"
-                    {...form.register('fields', { valueAsNumber: true })}
-                    placeholder="Enter number of fields"
-                    className="h-11"
-                  />
-                  {form.formState.errors.fields && (
-                    <p className="text-sm text-destructive">
-                      {form.formState.errors.fields.message}
-                    </p>
-                  )}
-                </div>
+                ))}
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="status">Status</Label>
-                      <Badge variant="secondary" className="text-xs">Required</Badge>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Switch 
-                        checked={fieldConfigs[5]?.required} 
-                        onCheckedChange={(checked) => updateFieldConfig(5, 'required', checked)}
-                        size="sm"
-                      />
-                      <span className="text-xs text-muted-foreground">Required</span>
-                    </div>
-                  </div>
-                  <Select
-                    onValueChange={(value) => form.setValue('status', value)}
-                    defaultValue={form.getValues('status')}
-                  >
-                    <SelectTrigger className="h-11">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Active">Active</SelectItem>
-                      <SelectItem value="Inactive">Inactive</SelectItem>
-                      <SelectItem value="Draft">Draft</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {form.formState.errors.status && (
-                    <p className="text-sm text-destructive">
-                      {form.formState.errors.status.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Badge variant="secondary" className="text-xs">Required</Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch 
-                      checked={fieldConfigs[3]?.required} 
-                      onCheckedChange={(checked) => updateFieldConfig(3, 'required', checked)}
-                      size="sm"
-                    />
-                    <span className="text-xs text-muted-foreground">Required</span>
-                  </div>
-                </div>
-                <Textarea
-                  id="description"
-                  {...form.register('description')}
-                  placeholder="Describe what this template is used for and what kind of documents it processes..."
-                  rows={4}
-                  className="resize-none"
-                />
-                {form.formState.errors.description && (
-                  <p className="text-sm text-destructive">
-                    {form.formState.errors.description.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor="lastUsed">Last Used Date</Label>
-                    <Badge variant="secondary" className="text-xs">Required</Badge>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch 
-                      checked={fieldConfigs[4]?.required} 
-                      onCheckedChange={(checked) => updateFieldConfig(4, 'required', checked)}
-                      size="sm"
-                    />
-                    <span className="text-xs text-muted-foreground">Required</span>
-                  </div>
-                </div>
-                <Input
-                  id="lastUsed"
-                  type="date"
-                  {...form.register('lastUsed')}
-                  className="h-11"
-                />
-                {form.formState.errors.lastUsed && (
-                  <p className="text-sm text-destructive">
-                    {form.formState.errors.lastUsed.message}
-                  </p>
-                )}
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsCreatingTemplate(false)}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-                <Button type="submit" disabled={isCreating} className="gap-2">
-                  <RiSaveLine className="h-4 w-4" />
-                  {isCreating ? 'Creating...' : 'Create Template'}
+                {/* Add New Field Mapping Button */}
+                <Button
+                  variant="outline"
+                  onClick={addFieldMapping}
+                  className="w-full gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Field Mapping
                 </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Template Details Section - 30% */}
+          <div className="lg:col-span-3">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <RiAddLine className="h-5 w-5" />
+                  Template Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={form.handleSubmit(handleCreateTemplate)} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Template Title</Label>
+                    <Input
+                      id="title"
+                      {...form.register('title')}
+                      placeholder="e.g., Invoice Template"
+                    />
+                    {form.formState.errors.title && (
+                      <p className="text-sm text-destructive">
+                        {form.formState.errors.title.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="department">Department</Label>
+                    <Input
+                      id="department"
+                      {...form.register('department')}
+                      placeholder="e.g., Finance, HR"
+                    />
+                    {form.formState.errors.department && (
+                      <p className="text-sm text-destructive">
+                        {form.formState.errors.department.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      {...form.register('description')}
+                      placeholder="Describe what this template is used for..."
+                      rows={3}
+                      className="resize-none"
+                    />
+                    {form.formState.errors.description && (
+                      <p className="text-sm text-destructive">
+                        {form.formState.errors.description.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex items-center justify-between">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsCreatingTemplate(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={isCreating} className="gap-2">
+                      <RiSaveLine className="h-4 w-4" />
+                      {isCreating ? 'Creating...' : 'Create Template'}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     );
   }
@@ -640,14 +733,14 @@ export function MyOrders() {
       {/* Header Section */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Template Management</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-xl font-semibold text-mono">Template Management</h1>
+          <p className="text-sm text-secondary-foreground mt-1">
             Create and manage extraction templates for document processing
           </p>
         </div>
         <Button 
           onClick={() => setIsCreatingTemplate(true)}
-          className="gap-2 h-11 px-6"
+          className="gap-2"
         >
           <Plus className="h-4 w-4" />
           Create Template
@@ -743,7 +836,6 @@ export function MyOrders() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between text-sm text-muted-foreground">
               <span>Showing {filteredItems.length} of {items.length} templates</span>
-              <span>Total fields: {filteredItems.reduce((sum, item) => sum + item.fields, 0)}</span>
             </div>
           </CardContent>
         </Card>
