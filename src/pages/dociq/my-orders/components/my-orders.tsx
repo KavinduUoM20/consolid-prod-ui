@@ -48,8 +48,9 @@ interface FieldConfig {
 interface FieldMapping {
   id: string;
   plmField: string;
-  vendorFields: string[];
+  similarFieldNames: string[];
   sampleValues: string[];
+  description: string;
 }
 
 export function MyOrders() {
@@ -82,7 +83,7 @@ export function MyOrders() {
 
   // Field mapping state
   const [fieldMappings, setFieldMappings] = useState<FieldMapping[]>([
-    { id: '1', plmField: '', vendorFields: [], sampleValues: [] }
+    { id: '1', plmField: '', similarFieldNames: [], sampleValues: [], description: '' }
   ]);
 
   // Update items when API data changes
@@ -121,19 +122,45 @@ export function MyOrders() {
 
   const handleCreateTemplate = async (data: TemplateFormValues) => {
     try {
-      await createTemplate({
-        title: data.title,
-        department: data.department,
-        fields: data.fields,
+      // Map form data to API request body structure
+      const requestBody = {
+        name: data.title,
+        type: "pdf",
+        category: data.department,
         description: data.description,
-        lastUsed: data.lastUsed,
-        status: data.status,
+        field_mappings: fieldMappings.map(mapping => ({
+          target_field: mapping.plmField,
+          sample_field_names: mapping.similarFieldNames,
+          value_patterns: mapping.sampleValues,
+          required: true
+        }))
+      };
+
+      // Send request to the API endpoint
+      const response = await fetch('https://api.consolidator-ai.site/api/v1/dociq/templates', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Add any required authentication headers here
+          // 'Authorization': 'Bearer your-token'
+        },
+        body: JSON.stringify(requestBody)
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
       
       toast.success('Template created successfully!');
       setIsCreatingTemplate(false);
       form.reset();
+      setFieldMappings([{ id: '1', plmField: '', similarFieldNames: [], sampleValues: [], description: '' }]);
     } catch (error) {
+      console.error('Error creating template:', error);
       toast.error('Failed to create template. Please try again.');
     }
   };
@@ -167,7 +194,7 @@ export function MyOrders() {
   // Field mapping functions
   const addFieldMapping = () => {
     const newId = (fieldMappings.length + 1).toString();
-    setFieldMappings(prev => [...prev, { id: newId, plmField: '', vendorFields: [], sampleValues: [] }]);
+    setFieldMappings(prev => [...prev, { id: newId, plmField: '', similarFieldNames: [], sampleValues: [], description: '' }]);
   };
 
   const removeFieldMapping = (id: string) => {
@@ -182,20 +209,20 @@ export function MyOrders() {
     ));
   };
 
-  const addVendorField = (mappingId: string, value: string) => {
+  const addSimilarFieldName = (mappingId: string, value: string) => {
     if (value.trim()) {
       setFieldMappings(prev => prev.map(mapping => 
         mapping.id === mappingId 
-          ? { ...mapping, vendorFields: [...mapping.vendorFields, value.trim()] }
+          ? { ...mapping, similarFieldNames: [...mapping.similarFieldNames, value.trim()] }
           : mapping
       ));
     }
   };
 
-  const removeVendorField = (mappingId: string, fieldIndex: number) => {
+  const removeSimilarFieldName = (mappingId: string, fieldIndex: number) => {
     setFieldMappings(prev => prev.map(mapping => 
       mapping.id === mappingId 
-        ? { ...mapping, vendorFields: mapping.vendorFields.filter((_, index) => index !== fieldIndex) }
+        ? { ...mapping, similarFieldNames: mapping.similarFieldNames.filter((_, index) => index !== fieldIndex) }
         : mapping
     ));
   };
@@ -532,55 +559,57 @@ export function MyOrders() {
                       )}
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                       {/* PLM Field */}
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">PLM Field</Label>
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium">PLM Field</Label>
                         <Input
-                          placeholder="Enter PLM field name"
+                          placeholder="PLM field"
                           value={mapping.plmField}
                           onChange={(e) => updateFieldMapping(mapping.id, 'plmField', e.target.value)}
+                          className="h-8 text-sm"
                         />
                       </div>
 
-                      {/* Vendor Fields */}
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Vendor Fields</Label>
-                        <div className="space-y-2">
-                          <div className="flex gap-2">
+                      {/* Similar Field Names */}
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium">Similar Field Names</Label>
+                        <div className="space-y-1">
+                          <div className="relative">
                             <Input
-                              placeholder="Add vendor field"
+                              placeholder="Add similar field"
                               onKeyPress={(e) => {
                                 if (e.key === 'Enter') {
-                                  addVendorField(mapping.id, e.currentTarget.value);
+                                  addSimilarFieldName(mapping.id, e.currentTarget.value);
                                   e.currentTarget.value = '';
                                 }
                               }}
+                              className="h-8 text-sm pr-8"
                             />
                             <Button
-                              variant="outline"
+                              variant="ghost"
                               size="sm"
                               onClick={(e) => {
                                 const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                                addVendorField(mapping.id, input.value);
+                                addSimilarFieldName(mapping.id, input.value);
                                 input.value = '';
                               }}
-                              className="shrink-0"
+                              className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0 bg-primary text-primary-foreground hover:bg-primary/90"
                             >
-                              Add
+                              <Plus className="h-3 w-3" />
                             </Button>
                           </div>
-                          <div className="flex flex-wrap gap-2">
-                            {mapping.vendorFields.map((field, fieldIndex) => (
-                              <Badge key={fieldIndex} variant="secondary" className="gap-1">
+                          <div className="flex flex-wrap gap-1 max-h-12 overflow-y-auto">
+                            {mapping.similarFieldNames.map((field, fieldIndex) => (
+                              <Badge key={fieldIndex} variant="secondary" size="sm" className="gap-1 text-xs">
                                 {field}
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => removeVendorField(mapping.id, fieldIndex)}
-                                  className="h-4 w-4 p-0 hover:bg-transparent"
+                                  onClick={() => removeSimilarFieldName(mapping.id, fieldIndex)}
+                                  className="h-3 w-3 p-0 hover:bg-transparent"
                                 >
-                                  <X className="h-3 w-3" />
+                                  <X className="h-2 w-2" />
                                 </Button>
                               </Badge>
                             ))}
@@ -589,10 +618,10 @@ export function MyOrders() {
                       </div>
 
                       {/* Sample Values */}
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium">Sample Values</Label>
-                        <div className="space-y-2">
-                          <div className="flex gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium">Sample Values</Label>
+                        <div className="space-y-1">
+                          <div className="relative">
                             <Input
                               placeholder="Add sample value"
                               onKeyPress={(e) => {
@@ -601,36 +630,48 @@ export function MyOrders() {
                                   e.currentTarget.value = '';
                                 }
                               }}
+                              className="h-8 text-sm pr-8"
                             />
                             <Button
-                              variant="outline"
+                              variant="ghost"
                               size="sm"
                               onClick={(e) => {
                                 const input = e.currentTarget.previousElementSibling as HTMLInputElement;
                                 addSampleValue(mapping.id, input.value);
                                 input.value = '';
                               }}
-                              className="shrink-0"
+                              className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0 bg-primary text-primary-foreground hover:bg-primary/90"
                             >
-                              Add
+                              <Plus className="h-3 w-3" />
                             </Button>
                           </div>
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-1 max-h-12 overflow-y-auto">
                             {mapping.sampleValues.map((value, valueIndex) => (
-                              <Badge key={valueIndex} variant="outline" className="gap-1">
+                              <Badge key={valueIndex} variant="secondary" size="sm" className="gap-1 text-xs">
                                 {value}
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => removeSampleValue(mapping.id, valueIndex)}
-                                  className="h-4 w-4 p-0 hover:bg-transparent"
+                                  className="h-3 w-3 p-0 hover:bg-transparent"
                                 >
-                                  <X className="h-3 w-3" />
+                                  <X className="h-2 w-2" />
                                 </Button>
                               </Badge>
                             ))}
                           </div>
                         </div>
+                      </div>
+
+                      {/* Description */}
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium">Description</Label>
+                        <Input
+                          placeholder="Description"
+                          value={mapping.description}
+                          onChange={(e) => updateFieldMapping(mapping.id, 'description', e.target.value)}
+                          className="h-8 text-sm"
+                        />
                       </div>
                     </div>
                   </div>
@@ -638,7 +679,7 @@ export function MyOrders() {
 
                 {/* Add New Field Mapping Button */}
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   onClick={addFieldMapping}
                   className="w-full gap-2"
                 >
