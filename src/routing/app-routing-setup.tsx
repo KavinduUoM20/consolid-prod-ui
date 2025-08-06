@@ -95,8 +95,10 @@ import {
 } from '@/pages/store-client';
 import {
   StoreClientPage as DociqHomePage,
-  MyOrdersPage as DociqMyOrdersPage,
 } from '@/pages/store-client';
+import {
+  MyOrdersPage as DociqMyOrdersPage,
+} from '@/pages/dociq/my-orders';
 import {
   UploadDocumentPage as DociqUploadDocumentPage,
   SelectTemplatePage as DociqSelectTemplatePage,

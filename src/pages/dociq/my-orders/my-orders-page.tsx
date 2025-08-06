@@ -29,7 +29,7 @@ export function MyOrdersPage() {
           </ToolbarActions>
         </Toolbar>
       </Container>
-      <Container>
+      <Container>     
         <MyOrdersContent />
       </Container>
     </Fragment>

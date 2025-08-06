@@ -397,7 +397,7 @@ export const MENU_SIDEBAR: MenuConfig = [
       icon: FileText,
       children: [
         { title: 'Home', path: '/dociq/home' },
-        { title: 'My Orders', path: '/dociq/my-orders' },
+        { title: 'Create Template', path: '/dociq/my-orders' },
         {
           title: 'Extractions',
           children: [
