@@ -8,7 +8,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { templateSchema, TemplateFormValues } from '../../extractions/select-template/components/forms';
+import { z } from 'zod';
+
+// Simplified schema for template creation
+const createTemplateSchema = z.object({
+  title: z.string().min(2, { message: 'Template title is required' }),
+  department: z.string().min(2, { message: 'Department is required' }),
+  description: z.string().min(10, { message: 'Description must be at least 10 characters' }),
+});
+
+type CreateTemplateFormValues = z.infer<typeof createTemplateSchema>;
 import { Alert, AlertIcon, AlertTitle } from '@/components/ui/alert';
 import { RiCheckboxCircleFill, RiDeleteBin6Line, RiArrowLeftLine, RiSaveLine, RiAddLine, RiSettings3Line, RiEditLine, RiCloseLine } from '@remixicon/react';
 import { toast } from 'sonner';
@@ -108,19 +117,16 @@ export function MyOrders() {
   }, [apiTemplates]);
 
   // react-hook-form for creating new template
-  const form = useForm<TemplateFormValues>({
-    resolver: zodResolver(templateSchema),
+  const form = useForm<CreateTemplateFormValues>({
+    resolver: zodResolver(createTemplateSchema),
     defaultValues: {
       title: '',
       department: '',
-      fields: 0,
       description: '',
-      lastUsed: '',
-      status: 'Active',
     },
   });
 
-  const handleCreateTemplate = async (data: TemplateFormValues) => {
+  const handleCreateTemplate = async (data: CreateTemplateFormValues) => {
     try {
       // Map form data to API request body structure
       const requestBody = {
@@ -159,6 +165,22 @@ export function MyOrders() {
       setIsCreatingTemplate(false);
       form.reset();
       setFieldMappings([{ id: '1', plmField: '', similarFieldNames: [], sampleValues: [], description: '' }]);
+      
+      // Refresh the templates list
+      if (apiTemplates) {
+        // Add the new template to the list
+        const newTemplate = {
+          id: result.id || Date.now().toString(),
+          default: false,
+          title: data.title,
+          department: data.department,
+          fields: fieldMappings.length,
+          description: data.description,
+          lastUsed: new Date().toLocaleDateString(),
+          status: 'Active',
+        };
+        setItems(prev => [newTemplate, ...prev]);
+      }
     } catch (error) {
       console.error('Error creating template:', error);
       toast.error('Failed to create template. Please try again.');
