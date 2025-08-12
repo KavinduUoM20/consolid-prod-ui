@@ -57,6 +57,26 @@ export function Info() {
     }
   }, [apiTemplates]);
 
+  // Automatically select the first template when items are loaded
+  useEffect(() => {
+    if (items.length > 0 && !selectedTemplate) {
+      const firstTemplate = items[0];
+      if (firstTemplate && firstTemplate.id) {
+        const templateDetails: TemplateDetails = {
+          id: firstTemplate.id,
+          title: firstTemplate.title,
+          department: firstTemplate.department,
+          fields: firstTemplate.fields,
+          description: firstTemplate.description,
+          lastUsed: firstTemplate.lastUsed,
+          status: firstTemplate.status,
+          isDefault: true,
+        };
+        setSelectedTemplate(templateDetails);
+      }
+    }
+  }, [items, selectedTemplate, setSelectedTemplate]);
+
   // Dialog state
   const [editOpen, setEditOpen] = useState<number|null>(null); 
   const [removeOpen, setRemoveOpen] = useState<number|null>(null); 
@@ -202,11 +222,13 @@ export function Info() {
             </Dialog>
           </div>
 
-          {item.default === false && (
-            <Button size="sm" variant="outline" onClick={() => handleSelect(index)}>
-              Select Template
-            </Button>
-          )}
+          <Button 
+            size="sm" 
+            variant={item.default ? "primary" : "outline"}
+            onClick={() => handleSelect(index)}
+          >
+            {item.default ? "Selected" : "Select Template"}
+          </Button>
 
         </div>
       </CardContent>

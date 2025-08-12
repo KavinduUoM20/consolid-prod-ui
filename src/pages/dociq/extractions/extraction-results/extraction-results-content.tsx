@@ -3,6 +3,9 @@ import { ExtractionMappingTable } from './components/extraction-mapping-table';
 import { useDocumentStorage } from '../hooks/use-document-storage';
 import { useExtractionResultsContext } from '../context/extraction-results-context';
 import { useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router';
+import { FileText } from 'lucide-react';
 
 export function ExtractionResultsContent() {
   const { documentDetails } = useDocumentStorage();
@@ -91,6 +94,16 @@ export function ExtractionResultsContent() {
             <ExtractionMappingTable extractionResults={extractionResults} />
           </div>
         </div>
+        
+                                   {/* Map to Master Button */}
+          <div className="flex justify-end pt-4">
+            <Button size="lg" className="px-6">
+              <Link className="flex items-center gap-2" to="#">
+                <FileText className="h-5 w-5" />
+                Map to Master
+              </Link>
+            </Button>
+          </div>
       </div>
 
       <div className="lg:col-span-1">

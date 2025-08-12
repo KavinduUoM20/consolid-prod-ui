@@ -65,7 +65,7 @@ export function ExtractionResultsPage() {
             />
             <Button>
               <Captions />
-              <Link to="/dociq/extractions/upload-document">New Extraction</Link>
+              <Link to="/dociq/extractions/upload-document">Enhance Mapping</Link>
             </Button>
           </ToolbarActions>
         </Toolbar>
