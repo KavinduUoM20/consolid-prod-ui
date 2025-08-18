@@ -95,7 +95,7 @@ import {
 } from '@/pages/store-client';
 import {
   StoreClientPage as DociqHomePage,
-} from '@/pages/store-client';
+} from '@/pages/dociq/home';
 import {
   MyOrdersPage as DociqMyOrdersPage,
 } from '@/pages/dociq/my-orders';

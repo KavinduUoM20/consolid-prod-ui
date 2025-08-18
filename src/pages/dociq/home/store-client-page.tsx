@@ -1,4 +1,5 @@
 import { Fragment } from 'react';
+import { PageNavbar } from './components/page-navbar';
 import {
   Toolbar,
   ToolbarActions,
@@ -10,13 +11,14 @@ import { Link } from 'react-router-dom';
 import { useSettings } from '@/providers/settings-provider';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/common/container';
-import { DociqOverviewContent } from '.';
+import { DociqOverviewContent } from './dociq-overview-content';
 
 export function StoreClientPage() {
   const { settings } = useSettings();
 
   return (
     <Fragment>
+      <PageNavbar />
       {settings?.layout === 'demo1' && (
         <Container>
           <Toolbar>
@@ -28,7 +30,7 @@ export function StoreClientPage() {
             </ToolbarHeading>
             <ToolbarActions>
               <Button variant="outline">
-                <Link to="/dociq/home">Security History</Link>
+                <Link to="/account/security/overview">Security History</Link>
               </Button>
             </ToolbarActions>
           </Toolbar>
