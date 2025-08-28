@@ -65,7 +65,22 @@ export function ExtractionResultsPage() {
       
       console.log('Sending enhance payload:', enhancePayload);
       
-      const response = await fetch(`/api/dociq/extractions/${extractionId}/enhance`, {
+      // API URL configuration following existing pattern
+      const getEnhanceApiUrl = (extractionId: string) => {
+        if (import.meta.env.DEV) {
+          // Use proxy in development to avoid CORS
+          return `/api/dociq/extractions/${extractionId}/enhance`;
+        } else {
+          // Use direct API in production
+          return `https://api.consolidator-ai.site/api/v1/dociq/extractions/${extractionId}/enhance`;
+        }
+      };
+
+      const enhanceApiUrl = getEnhanceApiUrl(extractionId);
+      console.log('Calling enhance API at:', enhanceApiUrl);
+      console.log('Environment:', import.meta.env.DEV ? 'Development' : 'Production');
+
+      const response = await fetch(enhanceApiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
