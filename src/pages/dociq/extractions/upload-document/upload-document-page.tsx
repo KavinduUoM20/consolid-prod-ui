@@ -6,7 +6,7 @@ import {
   ToolbarHeading,
   ToolbarPageTitle,
 } from '@/partials/common/toolbar';
-import { ChevronDown, Building2, Users } from 'lucide-react';
+import { ChevronDown, Building2, Users, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Container } from '@/components/common/container';
 import { UploadDocumentContent } from '.';
@@ -21,9 +21,11 @@ import {
 export function UploadDocumentPage() {
   const [selectedCluster, setSelectedCluster] = useState<string>('');
   const [selectedCustomer, setSelectedCustomer] = useState<string>('');
+  const [selectedMaterialType, setSelectedMaterialType] = useState<string>('');
 
   const clusters = ['LINEA AQUA', 'ACTIVE', 'LINEA INTOMO', 'BODYLINE', 'KREEDA'];
   const customers = ['Abercrombie & Fitch', 'Adore Me', 'Alo Yoga', 'Amante', 'Anta', 'MAS Innovation', 'Nike', 'Patagonia'];
+  const materialTypes = ['Yarn', 'Fabric', 'Accessories', 'Packaging', 'Embellishment', 'Emb. Sub Material'];
 
   return (
     <Fragment>
@@ -94,6 +96,35 @@ export function UploadDocumentPage() {
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Material Type Selection Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  className="min-w-[180px] justify-between bg-background hover:bg-accent"
+                >
+                  <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                    <span className={selectedMaterialType ? 'text-foreground' : 'text-muted-foreground'}>
+                      {selectedMaterialType || 'Select Material Type'}
+                    </span>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[200px]">
+                {materialTypes.map((materialType) => (
+                  <DropdownMenuItem 
+                    key={materialType}
+                    onClick={() => setSelectedMaterialType(materialType)}
+                    className="cursor-pointer hover:bg-accent"
+                  >
+                    {materialType}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </ToolbarActions>
         </Toolbar>
       </Container>
@@ -101,6 +132,7 @@ export function UploadDocumentPage() {
         <UploadDocumentContent 
           selectedCluster={selectedCluster}
           selectedCustomer={selectedCustomer}
+          selectedMaterialType={selectedMaterialType}
         />
       </Container>
     </Fragment>

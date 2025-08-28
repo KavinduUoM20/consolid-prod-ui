@@ -12,9 +12,10 @@ import { toast } from 'sonner';
 interface UploadDocumentContentProps {
   selectedCluster: string;
   selectedCustomer: string;
+  selectedMaterialType: string;
 }
 
-export function UploadDocumentContent({ selectedCluster, selectedCustomer }: UploadDocumentContentProps) {
+export function UploadDocumentContent({ selectedCluster, selectedCustomer, selectedMaterialType }: UploadDocumentContentProps) {
   const { documentDetails, setDocumentDetails } = useDocumentStorage();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const { uploadDocument, isUploading } = useDocumentUpload();
@@ -32,7 +33,7 @@ export function UploadDocumentContent({ selectedCluster, selectedCustomer }: Upl
       return;
     }
 
-    // Check if cluster and customer are selected
+    // Check if cluster, customer, and material type are selected
     if (!selectedCluster) {
       toast.error('Please select a cluster');
       return;
@@ -43,10 +44,16 @@ export function UploadDocumentContent({ selectedCluster, selectedCustomer }: Upl
       return;
     }
 
-    // Create headers with selected cluster and customer
+    if (!selectedMaterialType) {
+      toast.error('Please select a material type');
+      return;
+    }
+
+    // Create headers with selected cluster, customer, and material type
     const headers = {
       'X-Cluster': selectedCluster,
       'X-Customer': selectedCustomer,
+      'X-Material-Type': selectedMaterialType,
     };
 
     console.log('Uploading with headers:', headers);

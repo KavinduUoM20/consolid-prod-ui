@@ -1,8 +1,9 @@
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useState, useEffect } from 'react';
+import { useExtractionResultsContext } from '../../context/extraction-results-context';
 
 interface ExtractionMapping {
   id: string;
@@ -11,20 +12,10 @@ interface ExtractionMapping {
   confidence: number;
 }
 
-interface ExtractionResult {
-  id: string;
-  target_mappings: Array<{
-    target_field: string;
-    target_value: string;
-    target_confidence: number | null;
-  }>;
-  overall_confidence: number;
-  created_at: string;
-  updated_at: string;
-}
+// ExtractionResult interface moved to context file
 
 interface ExtractionMappingTableProps {
-  extractionResults?: ExtractionResult | null;
+  // No longer need extractionResults prop as we'll get it from context
 }
 
 const mockData: ExtractionMapping[] = [
@@ -102,14 +93,15 @@ const mockData: ExtractionMapping[] = [
   }
 ];
 
-export function ExtractionMappingTable({ extractionResults }: ExtractionMappingTableProps) {
+export function ExtractionMappingTable({}: ExtractionMappingTableProps) {
+  const { editedMappings, extractionResults, updateMappingField } = useExtractionResultsContext();
   const [data, setData] = useState<ExtractionMapping[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
 
-  // Transform API results to table data
-  const transformResultsToTableData = (results: ExtractionResult): ExtractionMapping[] => {
-    return results.target_mappings.map((mapping, index) => ({
+  // Transform edited mappings to table data
+  const transformMappingsToTableData = (mappings: typeof editedMappings): ExtractionMapping[] => {
+    return mappings.map((mapping, index) => ({
       id: `${index + 1}`,
       standardField: mapping.target_field,
       documentField: mapping.target_value || 'Not found',
@@ -117,15 +109,24 @@ export function ExtractionMappingTable({ extractionResults }: ExtractionMappingT
     }));
   };
 
-  // Update data when extraction results change
+  // Update data when edited mappings change
   useEffect(() => {
-    if (extractionResults) {
-      const transformedData = transformResultsToTableData(extractionResults);
+    if (editedMappings.length > 0) {
+      const transformedData = transformMappingsToTableData(editedMappings);
+      setData(transformedData);
+    } else if (extractionResults) {
+      // Fallback to original extraction results if no edited mappings yet
+      const transformedData = extractionResults.target_mappings.map((mapping, index) => ({
+        id: `${index + 1}`,
+        standardField: mapping.target_field,
+        documentField: mapping.target_value || 'Not found',
+        confidence: mapping.target_confidence || 0,
+      }));
       setData(transformedData);
     } else {
       setData(mockData); // Fallback to mock data if no results
     }
-  }, [extractionResults]);
+  }, [editedMappings, extractionResults]);
 
   const handleEdit = (item: ExtractionMapping) => {
     setEditingId(item.id);
@@ -133,13 +134,12 @@ export function ExtractionMappingTable({ extractionResults }: ExtractionMappingT
   };
 
   const handleSave = (id: string) => {
-    setData(prevData => 
-      prevData.map(item => 
-        item.id === id 
-          ? { ...item, documentField: editValue }
-          : item
-      )
-    );
+    // Find the item being edited
+    const item = data.find(item => item.id === id);
+    if (item) {
+      // Update the context with the new value
+      updateMappingField(item.standardField, editValue);
+    }
     setEditingId(null);
     setEditValue('');
   };
