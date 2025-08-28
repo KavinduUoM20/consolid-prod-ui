@@ -107,6 +107,9 @@ export function ExtractionResultsPage() {
       console.log('Has data object?', 'data' in enhancedResults);
       console.log('Data structure:', enhancedResults.data ? Object.keys(enhancedResults.data) : 'No data object');
       console.log('Has target_mappings in data?', enhancedResults.data && 'target_mappings' in enhancedResults.data);
+      console.log('Redis data:', enhancedResults.redis_data);
+      console.log('Has Redis data?', enhancedResults.redis_data !== null && enhancedResults.redis_data !== undefined);
+      console.log('API message:', enhancedResults.message);
       
       // Check if the response has the expected structure
       if (!enhancedResults.data || !enhancedResults.data.target_mappings) {
