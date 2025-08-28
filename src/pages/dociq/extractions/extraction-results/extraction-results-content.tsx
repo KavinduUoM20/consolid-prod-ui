@@ -1,12 +1,16 @@
 import { Extraction } from '../select-template/components/order';
 import { ExtractionMappingTable } from './components/extraction-mapping-table';
+import { MapToMasterModal } from './components/map-to-master-modal';
 import { useDocumentStorage } from '../hooks/use-document-storage';
 import { useExtractionResultsContext } from '../context/extraction-results-context';
-import { useEffect } from 'react';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { FileText } from 'lucide-react';
 
 export function ExtractionResultsContent() {
   const { documentDetails } = useDocumentStorage();
-  const { extractionResults, isLoading } = useExtractionResultsContext();
+  const { extractionResults, isLoading, getUpdatedExtractionData } = useExtractionResultsContext();
+  const [mapToMasterModalOpen, setMapToMasterModalOpen] = useState(false);
 
   // Show loading state while context is loading data
   if (isLoading) {
@@ -88,9 +92,43 @@ export function ExtractionResultsContent() {
       <div className="lg:col-span-2 space-y-5">
         <div className="grid grid-cols-1 gap-5 lg:gap-9">
           <div className="lg:col-span-1">
-            <ExtractionMappingTable extractionResults={extractionResults} />
+            <ExtractionMappingTable />
           </div>
         </div>
+        
+                                   {/* Map to Master Button */}
+          <div className="flex justify-end pt-4">
+            <MapToMasterModal
+              open={mapToMasterModalOpen}
+              onOpenChange={setMapToMasterModalOpen}
+              extractionData={(() => {
+                const updatedExtractionResults = getUpdatedExtractionData();
+                return updatedExtractionResults ? {
+                  extractionId: documentDetails?.extraction_id || updatedExtractionResults.id || 'Unknown',
+                  extractionDate: new Date(updatedExtractionResults.created_at).toLocaleDateString(),
+                  template: 'Invoice Processing Template', // This could come from template context
+                  documentType: documentDetails?.type || 'PDF',
+                  fields: updatedExtractionResults.target_mappings.map((mapping: any) => ({
+                    standardField: mapping.target_field,
+                    documentField: mapping.target_value || 'Not found',
+                    confidence: mapping.target_confidence || 0,
+                  }))
+                } : {
+                  extractionId: 'Unknown',
+                  extractionDate: 'Unknown',
+                  template: 'Unknown',
+                  documentType: 'Unknown',
+                  fields: []
+                };
+              })()}
+              trigger={
+                <Button size="lg" className="px-6">
+                  <FileText className="h-5 w-5" />
+                  Map to Master
+                </Button>
+              }
+            />
+          </div>
       </div>
 
       <div className="lg:col-span-1">

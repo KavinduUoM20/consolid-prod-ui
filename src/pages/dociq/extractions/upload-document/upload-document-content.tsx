@@ -9,7 +9,13 @@ import { useDocumentUpload } from '../hooks/use-document-upload';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-export function UploadDocumentContent() {
+interface UploadDocumentContentProps {
+  selectedCluster: string;
+  selectedCustomer: string;
+  selectedMaterialType: string;
+}
+
+export function UploadDocumentContent({ selectedCluster, selectedCustomer, selectedMaterialType }: UploadDocumentContentProps) {
   const { documentDetails, setDocumentDetails } = useDocumentStorage();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const { uploadDocument, isUploading } = useDocumentUpload();
@@ -27,7 +33,32 @@ export function UploadDocumentContent() {
       return;
     }
 
-    const result = await uploadDocument(selectedFiles[0]);
+    // Check if cluster, customer, and material type are selected
+    if (!selectedCluster) {
+      toast.error('Please select a cluster');
+      return;
+    }
+
+    if (!selectedCustomer) {
+      toast.error('Please select a customer');
+      return;
+    }
+
+    if (!selectedMaterialType) {
+      toast.error('Please select a material type');
+      return;
+    }
+
+    // Create headers with selected cluster, customer, and material type
+    const headers = {
+      'X-Cluster': selectedCluster,
+      'X-Customer': selectedCustomer,
+      'X-Material-Type': selectedMaterialType,
+    };
+
+    console.log('Uploading with headers:', headers);
+
+    const result = await uploadDocument(selectedFiles[0], { headers });
 
     if (result.success) {
       // Extract extraction_id from the response

@@ -18,10 +18,14 @@ interface UploadResponse {
   error?: string;
 }
 
+interface UploadOptions {
+  headers?: Record<string, string>;
+}
+
 export function useDocumentUpload() {
   const [isUploading, setIsUploading] = useState(false);
 
-  const uploadDocument = async (file: File): Promise<UploadResponse> => {
+  const uploadDocument = async (file: File, options?: UploadOptions): Promise<UploadResponse> => {
     if (!file) {
       return {
         success: false,
@@ -36,16 +40,24 @@ export function useDocumentUpload() {
       console.log('Uploading document to:', apiUrl);
       console.log('Environment:', import.meta.env.DEV ? 'Development' : 'Production');
       console.log('File being uploaded:', file.name, file.size, file.type);
+      console.log('Upload headers:', options?.headers);
 
       // Create FormData with the file
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(apiUrl, {
+      // Prepare fetch options
+      const fetchOptions: RequestInit = {
         method: 'POST',
         body: formData,
-        // Don't set Content-Type header - let the browser set it with boundary for FormData
-      });
+      };
+
+      // Add headers if provided
+      if (options?.headers) {
+        fetchOptions.headers = options.headers;
+      }
+
+      const response = await fetch(apiUrl, fetchOptions);
 
       console.log('Upload response status:', response.status);
       console.log('Upload response headers:', response.headers);

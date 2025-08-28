@@ -1722,7 +1722,7 @@ export const MENU_ROOT: MenuConfig = [
     childrenIndex: 4,
   },
   {
-    title: 'TechPackIQ',
+    title: 'RMDS Agent',
     icon: FileChartColumn,
     rootPath: '/dociq/',
     path: 'dociq/home',
