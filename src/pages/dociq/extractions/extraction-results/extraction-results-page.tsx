@@ -31,11 +31,11 @@ export function ExtractionResultsPage() {
       return;
     }
 
-    // Get extraction ID from the extraction results or fallback to documentDetails
-    const extractionId = updatedExtractionResults.id || documentDetails?.extraction_id;
+    // Get extraction ID from documentDetails (the original extraction ID, not the mapping result ID)
+    const extractionId = documentDetails?.extraction_id;
     
     if (!extractionId) {
-      console.error('Missing extraction ID in both extraction results and document details');
+      console.error('Missing extraction ID in document details');
       return;
     }
 
@@ -178,7 +178,7 @@ export function ExtractionResultsPage() {
             />
             <Button 
               onClick={handleEnhanceMapping}
-              disabled={isEnhancing || !updatedExtractionResults || !(updatedExtractionResults.id || documentDetails?.extraction_id)}
+              disabled={isEnhancing || !updatedExtractionResults || !documentDetails?.extraction_id}
             >
               {isEnhancing ? (
                 <>
