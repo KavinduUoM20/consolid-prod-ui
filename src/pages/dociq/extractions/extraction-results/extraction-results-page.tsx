@@ -104,18 +104,24 @@ export function ExtractionResultsPage() {
       
       console.log('Raw API response:', enhancedResults);
       console.log('Response structure:', Object.keys(enhancedResults));
-      console.log('Has target_mappings?', 'target_mappings' in enhancedResults);
+      console.log('Has data object?', 'data' in enhancedResults);
+      console.log('Data structure:', enhancedResults.data ? Object.keys(enhancedResults.data) : 'No data object');
+      console.log('Has target_mappings in data?', enhancedResults.data && 'target_mappings' in enhancedResults.data);
       
       // Check if the response has the expected structure
-      if (!enhancedResults.target_mappings) {
-        console.error('API response missing target_mappings:', enhancedResults);
-        throw new Error('Invalid API response: missing target_mappings field');
+      if (!enhancedResults.data || !enhancedResults.data.target_mappings) {
+        console.error('API response missing data.target_mappings:', enhancedResults);
+        throw new Error('Invalid API response: missing data.target_mappings field');
       }
       
-      // Refresh with enhanced results (this will update both extraction results and reset edited mappings)
-      refreshWithNewResults(enhancedResults);
+      // Extract the data object which contains the enhanced extraction results
+      const enhancedData = enhancedResults.data;
       
-      console.log('Extraction enhanced successfully:', enhancedResults);
+      // Refresh with enhanced results (this will update both extraction results and reset edited mappings)
+      refreshWithNewResults(enhancedData);
+      
+      console.log('Extraction enhanced successfully:', enhancedData);
+      console.log('Enhanced target_mappings count:', enhancedData.target_mappings?.length || 0);
       
     } catch (error) {
       console.error('Failed to enhance extraction:', error);
