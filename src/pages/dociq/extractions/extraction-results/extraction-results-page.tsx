@@ -110,6 +110,9 @@ export function ExtractionResultsPage() {
       console.log('Redis data:', enhancedResults.redis_data);
       console.log('Has Redis data?', enhancedResults.redis_data !== null && enhancedResults.redis_data !== undefined);
       console.log('API message:', enhancedResults.message);
+      console.log('LLM Enhancement:', enhancedResults.llm_enhancement);
+      console.log('Enhancement stats:', enhancedResults.llm_enhancement?.enhancement_stats);
+      console.log('Enhanced mappings count:', enhancedResults.llm_enhancement?.enhanced_mappings?.length || 0);
       
       // Check if the response has the expected structure
       if (!enhancedResults.data || !enhancedResults.data.target_mappings) {
@@ -117,8 +120,24 @@ export function ExtractionResultsPage() {
         throw new Error('Invalid API response: missing data.target_mappings field');
       }
       
-      // Extract the data object which contains the enhanced extraction results
-      const enhancedData = enhancedResults.data;
+      // Use enhanced mappings if available, otherwise fall back to original data
+      let enhancedData = enhancedResults.data;
+      
+      if (enhancedResults.llm_enhancement && enhancedResults.llm_enhancement.enhanced_mappings) {
+        console.log('Using LLM enhanced mappings instead of original data mappings');
+        console.log('Enhancement comparison:');
+        console.log('- Original mappings:', enhancedResults.data.target_mappings.length);
+        console.log('- Enhanced mappings:', enhancedResults.llm_enhancement.enhanced_mappings.length);
+        console.log('- Redis verified fields:', enhancedResults.llm_enhancement.enhancement_stats?.redis_verified || 0);
+        console.log('- Original fields unchanged:', enhancedResults.llm_enhancement.enhancement_stats?.original || 0);
+        
+        enhancedData = {
+          ...enhancedResults.data,
+          target_mappings: enhancedResults.llm_enhancement.enhanced_mappings
+        };
+      } else {
+        console.log('No LLM enhanced mappings found, using original data mappings');
+      }
       
       // Refresh with enhanced results (this will update both extraction results and reset edited mappings)
       refreshWithNewResults(enhancedData);
