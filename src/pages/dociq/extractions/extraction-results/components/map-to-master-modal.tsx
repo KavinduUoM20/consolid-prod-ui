@@ -6,6 +6,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Download, FileText } from 'lucide-react';
 import { useState } from 'react';
 
+// Maintained list of allowed fields to display in the Map to Master modal
+// To add/remove fields, simply update this array - the filtering logic will automatically apply
+const ALLOWED_MASTER_FIELDS = [
+  'Cluster',
+  'Customer', 
+  'Material Type',
+  'Material Reference',
+  'Material Group',
+  'UOM',
+  'Composition'
+];
+
 interface MapToMasterModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -31,6 +43,17 @@ export function MapToMasterModal({
 }: MapToMasterModalProps) {
   const [isExporting, setIsExporting] = useState(false);
 
+  // Filter extraction data to only include allowed fields
+  const getFilteredFields = () => {
+    if (!extractionData?.fields) return [];
+    
+    return extractionData.fields.filter(field => 
+      ALLOWED_MASTER_FIELDS.includes(field.standardField)
+    );
+  };
+
+  const filteredFields = getFilteredFields();
+
   const handleExportJSON = () => {
     setIsExporting(true);
     
@@ -42,11 +65,11 @@ export function MapToMasterModal({
       template: extractionData?.template || 'Unknown Template',
       documentType: extractionData?.documentType || 'Unknown',
       timestamp: new Date().toISOString(),
-      mappings: extractionData?.fields?.map(field => ({
+      mappings: filteredFields.map(field => ({
         field: field.standardField,
         value: field.documentField,
         confidence: field.confidence
-      })) || []
+      }))
     };
 
     // Create and download file
@@ -106,19 +129,21 @@ export function MapToMasterModal({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {extractionData?.fields?.map((field, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">
-                        {field.standardField}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {field.documentField}
-                      </TableCell>
-                    </TableRow>
-                  )) || (
+                  {filteredFields.length > 0 ? (
+                    filteredFields.map((field, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="font-medium">
+                          {field.standardField}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {field.documentField}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
                     <TableRow>
                       <TableCell colSpan={2} className="text-center text-gray-500">
-                        No extraction data available
+                        No master fields available for mapping
                       </TableCell>
                     </TableRow>
                   )}
@@ -135,7 +160,7 @@ export function MapToMasterModal({
           
           <Button 
             onClick={handleExportJSON}
-            disabled={isExporting || !extractionData?.fields?.length}
+            disabled={isExporting || filteredFields.length === 0}
             className="flex items-center gap-2"
           >
             {isExporting ? (

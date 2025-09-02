@@ -113,9 +113,12 @@ import { Navigate, Route, Routes } from 'react-router';
 export function AppRoutingSetup() {
   return (
     <Routes>
+      {/* Always redirect base URL to signin page */}
+      <Route path="/" element={<Navigate to="/auth/signin" replace />} />
+      
       <Route element={<RequireAuth />}>
         <Route element={<Demo3Layout />}>
-          <Route path="/" element={<DefaultPage />} />
+          <Route path="/dashboard" element={<DefaultPage />} />
           <Route path="/dark-sidebar" element={<Demo1DarkSidebarPage />} />
           <Route
             path="/public-profile/profiles/default/"

@@ -97,7 +97,7 @@ export function SignInPage() {
       await login(values.email, values.password);
 
       // Get the 'next' parameter from URL if it exists
-      const nextPath = searchParams.get('next') || '/';
+      const nextPath = searchParams.get('next') || '/dashboard';
 
       // Use navigate for navigation
       navigate(nextPath);
