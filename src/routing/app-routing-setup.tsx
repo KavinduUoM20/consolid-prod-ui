@@ -107,6 +107,8 @@ import {
 } from '@/pages/dociq/extractions';
 import { ExtractionLayout } from '@/pages/dociq/extractions/extraction-layout';
 import { ExtractionResultsProvider } from '@/pages/dociq/extractions/context/extraction-results-context';
+import { ChatPage } from '@/pages/onemas';
+import { OnemasLayout } from '@/layouts/onemas/layout';
 
 import { Navigate, Route, Routes } from 'react-router';
 
@@ -442,6 +444,11 @@ export function AppRoutingSetup() {
             element={<AllProductsPage />}
           />
           <Route path="/auth/get-started" element={<AccountGetStartedPage />} />
+        </Route>
+        
+        {/* Onemas Routes with Custom Layout (no navbar, maintains rounded corners) */}
+        <Route element={<OnemasLayout />}>
+          <Route path="/onemas/chat" element={<ChatPage />} />
         </Route>
       </Route>
       <Route path="error/*" element={<ErrorRouting />} />
