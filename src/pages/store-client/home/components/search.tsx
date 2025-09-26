@@ -19,7 +19,7 @@ export function Search() {
           variant="lg"
           id="search-input"
           value={searchInput}
-          placeholder="Search shop"
+          placeholder="Search AI tools"
           onChange={(e) => setSearchInput(e.target.value)}
           className="ps-9 pe-10 w-full"
         />

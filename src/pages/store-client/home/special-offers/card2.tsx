@@ -38,7 +38,7 @@ export function Card2({
           className="mb-2.5"
           onClick={showCartSheet}
         >
-          <ShoppingCart /> Add to Card
+          <ShoppingCart /> Get Tool
         </Button>
         <span className="text-sm font-medium text-mono">{total}</span>
 

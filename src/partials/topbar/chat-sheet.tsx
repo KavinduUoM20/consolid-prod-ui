@@ -57,6 +57,7 @@ interface JoinRequest {
   avatar: string;
   team: string;
   timestamp: string;
+  type: 'dociq' | 'ocap';
 }
 
 export function ChatSheet({ trigger }: { trigger: ReactNode }) {
@@ -64,62 +65,90 @@ export function ChatSheet({ trigger }: { trigger: ReactNode }) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isConnected, setIsConnected] = useState(false);
-  const [joinRequest, setJoinRequest] = useState<JoinRequest | null>(null);
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
   const [isChatActive, setIsChatActive] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [joinRequestAccepted, setJoinRequestAccepted] = useState(false);
+  const [joinRequestAccepted, setJoinRequestAccepted] = useState<{dociq: boolean, ocap: boolean}>({dociq: false, ocap: false});
+  const [activeChat, setActiveChat] = useState<'dociq' | 'ocap' | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const wsRef = useRef<WebSocket | null>(null);
+  const wsDociqRef = useRef<WebSocket | null>(null);
+  const wsOcapRef = useRef<WebSocket | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  // WebSocket disconnection function
-  const disconnectWebSocket = () => {
-    if (wsRef.current) {
-      console.log('Disconnecting WebSocket...');
-      wsRef.current.close(1000, 'Chat closed by user');
-      wsRef.current = null;
+  // Update connection status based on active chat
+  const updateConnectionStatus = () => {
+    if (activeChat === 'dociq') {
+      setIsConnected(wsDociqRef.current?.readyState === WebSocket.OPEN);
+    } else if (activeChat === 'ocap') {
+      setIsConnected(wsOcapRef.current?.readyState === WebSocket.OPEN);
+    } else {
       setIsConnected(false);
-      setIsChatActive(false);
-      setJoinRequest(null);
-      setJoinRequestAccepted(false);
-      setMessages([]);
-      setIsTyping(false);
-      console.log('WebSocket disconnected successfully');
     }
+  };
+
+  // Update connection status when active chat changes
+  useEffect(() => {
+    updateConnectionStatus();
+  }, [activeChat]);
+
+  // WebSocket disconnection function
+  const disconnectWebSockets = () => {
+    if (wsDociqRef.current) {
+      console.log('Disconnecting DocIQ WebSocket...');
+      wsDociqRef.current.close(1000, 'Chat closed by user');
+      wsDociqRef.current = null;
+    }
+    if (wsOcapRef.current) {
+      console.log('Disconnecting OCAP WebSocket...');
+      wsOcapRef.current.close(1000, 'Chat closed by user');
+      wsOcapRef.current = null;
+    }
+    setIsConnected(false);
+    setIsChatActive(false);
+    setJoinRequests([]);
+    setJoinRequestAccepted({dociq: false, ocap: false});
+    setActiveChat(null);
+    setMessages([]);
+    setIsTyping(false);
+    console.log('All WebSockets disconnected successfully');
   };
 
   // Handle sheet close
   const handleSheetClose = (open: boolean) => {
     setIsOpen(open);
     if (!open) {
-      // When sheet is closed, disconnect WebSocket
-      disconnectWebSocket();
+      // When sheet is closed, disconnect all WebSockets
+      disconnectWebSockets();
     }
   };
 
-  // WebSocket connection function
-  const connectWebSocket = () => {
+  // DocIQ WebSocket connection function
+  const connectDociqWebSocket = () => {
     try {
-      console.log('Attempting to connect to WebSocket...');
+      console.log('Attempting to connect to DocIQ WebSocket...');
       const ws = new WebSocket('wss://api.consolidator-ai.site/api/v1/dociq/extractions/ws');
       
       ws.onopen = () => {
-        console.log('WebSocket connected successfully to:', 'wss://api.consolidator-ai.site/api/v1/dociq/extractions/ws');
-        setIsConnected(true);
+        console.log('DocIQ WebSocket connected successfully');
+        updateConnectionStatus();
         
-                  // Simulate Jane Perez join request after connection (only if not already accepted)
-          setTimeout(() => {
-            if (!joinRequestAccepted) {
-              setJoinRequest({
-                id: '1',
+        // Simulate Jane Perez join request after connection (only if not already accepted)
+        setTimeout(() => {
+          if (!joinRequestAccepted.dociq) {
+            setJoinRequests(prev => [
+              ...prev.filter(req => req.type !== 'dociq'),
+              {
+                id: 'dociq-1',
                 name: 'Jane Perez',
                 avatar: '/media/avatars/300-14.png',
                 team: 'Design Team',
-                timestamp: 'Just now'
-              });
-            }
-          }, 1000);
+                timestamp: 'Just now',
+                type: 'dociq'
+              }
+            ]);
+          }
+        }, 1000);
       };
 
       ws.onmessage = (event) => {
@@ -131,117 +160,301 @@ export function ChatSheet({ trigger }: { trigger: ReactNode }) {
           if (messageText.startsWith('Echo: ')) {
             const jsonPart = messageText.substring(6); // Remove "Echo: " prefix
             data = JSON.parse(jsonPart);
-            console.log('Parsed echo message:', data);
+            console.log('DocIQ parsed echo message:', data);
           } else {
             // Handle regular JSON messages
             data = JSON.parse(messageText);
           }
           
-          console.log('WebSocket message received:', data);
+          console.log('DocIQ WebSocket message received:', data);
           
-          if (data.type === 'message') {
-            const newMessage: Message = {
-              id: data.id || Date.now().toString(),
-              avatar: data.avatar || '/media/avatars/300-5.png',
-              text: data.text,
-              time: new Date().toLocaleTimeString('en-US', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              }),
-              in: true,
-              sender: data.sender || 'Support Agent'
-            };
-            
-            setMessages(prev => [...prev, newMessage]);
-            scrollToBottom();
-          } else if (data.type === 'typing') {
-            setIsTyping(data.isTyping);
-                  } else if (data.type === 'join_request') {
-          // Only show join request if it hasn't been accepted yet
-          if (!joinRequestAccepted) {
-            setJoinRequest(data.request);
-          } else {
-            console.log('Join request ignored - already accepted');
+          // Only process messages if DocIQ chat is active
+          if (activeChat === 'dociq') {
+            if (data.type === 'message') {
+              const newMessage: Message = {
+                id: data.id || Date.now().toString(),
+                avatar: data.avatar || '/media/avatars/300-5.png',
+                text: data.text,
+                time: new Date().toLocaleTimeString('en-US', { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                }),
+                in: true,
+                sender: data.sender || 'Support Agent'
+              };
+              
+              setMessages(prev => [...prev, newMessage]);
+              scrollToBottom();
+            } else if (data.type === 'typing') {
+              setIsTyping(data.isTyping);
+            } else if (data.type === 'system_message') {
+              // Handle system messages like "Agent is typing..."
+              const systemMessage: Message = {
+                id: Date.now().toString(),
+                avatar: '/media/avatars/300-5.png',
+                text: data.text,
+                time: new Date().toLocaleTimeString('en-US', { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                }),
+                in: true,
+                sender: 'System'
+              };
+              
+              setMessages(prev => [...prev, systemMessage]);
+              scrollToBottom();
+            }
           }
-          } else if (data.type === 'system_message') {
-            // Handle system messages like "Agent is typing..."
-            const systemMessage: Message = {
-              id: Date.now().toString(),
-              avatar: '/media/avatars/300-5.png',
-              text: data.text,
-              time: new Date().toLocaleTimeString('en-US', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              }),
-              in: true,
-              sender: 'System'
-            };
-            
-            setMessages(prev => [...prev, systemMessage]);
-            scrollToBottom();
-          } else if (data.type === 'pong') {
-            console.log('Received pong response from server');
+          
+          if (data.type === 'pong') {
+            console.log('Received DocIQ pong response from server');
           } else if (data.type === 'join_request_response') {
-            console.log('Received join request response:', data);
-          } else {
-            // Handle any other message types
-            console.log('Unknown message type received:', data);
+            console.log('Received DocIQ join request response:', data);
+          } else if (data.type !== 'message' && data.type !== 'typing' && data.type !== 'system_message') {
+            console.log('Unknown DocIQ message type received:', data.type, data);
           }
         } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
+          console.error('Error parsing DocIQ WebSocket message:', error);
           console.log('Raw message data:', event.data);
         }
       };
 
       ws.onclose = (event) => {
-        console.log('WebSocket disconnected:', event.code, event.reason);
-        setIsConnected(false);
-        setIsChatActive(false);
+        console.log('DocIQ WebSocket disconnected:', event.code, event.reason);
         
-        // Add a system message when disconnected
-        const disconnectMessage: Message = {
-          id: Date.now().toString(),
-          avatar: '/media/avatars/300-5.png',
-          text: `Connection lost (Code: ${event.code}). Trying to reconnect...`,
-          time: new Date().toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          }),
-          in: true,
-          sender: 'System'
-        };
-        
-        setMessages(prev => [...prev, disconnectMessage]);
+        // Add a system message when disconnected (only if DocIQ chat is active)
+        if (activeChat === 'dociq') {
+          const disconnectMessage: Message = {
+            id: Date.now().toString(),
+            avatar: '/media/avatars/300-5.png',
+            text: `DocIQ connection lost (Code: ${event.code}). Trying to reconnect...`,
+            time: new Date().toLocaleTimeString('en-US', { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            }),
+            in: true,
+            sender: 'System'
+          };
+          
+          setMessages(prev => [...prev, disconnectMessage]);
+        }
         
         // Try to reconnect after 5 seconds
         setTimeout(() => {
-          console.log('Attempting to reconnect...');
-          connectWebSocket();
+          console.log('Attempting to reconnect DocIQ...');
+          connectDociqWebSocket();
         }, 5000);
       };
 
       ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        setIsConnected(false);
+        console.error('DocIQ WebSocket error:', error);
       };
 
-      wsRef.current = ws;
+      wsDociqRef.current = ws;
     } catch (error) {
-      console.error('Error creating WebSocket connection:', error);
-      setIsConnected(false);
+      console.error('Error creating DocIQ WebSocket connection:', error);
     }
   };
 
-  // WebSocket connection - only connect when sheet is opened
+  // OCAP WebSocket connection function
+  const connectOcapWebSocket = () => {
+    try {
+      console.log('🔌 Attempting to connect to OCAP WebSocket...');
+      console.log('🌐 OCAP WebSocket URL: wss://api.consolidator-ai.site/api/v1/ocap/ocap-chat/ws');
+      const ws = new WebSocket('wss://api.consolidator-ai.site/api/v1/ocap/ocap-chat/ws');
+      
+      ws.onopen = () => {
+        console.log('✅ OCAP WebSocket connected successfully');
+        console.log('🔗 OCAP WebSocket readyState:', ws.readyState, '(OPEN =', WebSocket.OPEN, ')');
+        // Update connection status based on current active chat
+        updateConnectionStatus();
+        
+        // Simulate OCAP Agent join request after connection (only if not already accepted)
+        setTimeout(() => {
+          if (!joinRequestAccepted.ocap) {
+            setJoinRequests(prev => [
+              ...prev.filter(req => req.type !== 'ocap'),
+              {
+                id: 'ocap-1',
+                name: 'OCAP Agent',
+                avatar: '/media/avatars/300-5.png',
+                team: 'AI Team',
+                timestamp: 'Just now',
+                type: 'ocap'
+              }
+            ]);
+          }
+        }, 1000);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          console.log('📨 Raw OCAP WebSocket message received:', event.data);
+          let data;
+          const messageText = event.data;
+          
+          // Handle server echo format: "Echo: {json_data}"
+          if (messageText.startsWith('Echo: ')) {
+            const jsonPart = messageText.substring(6); // Remove "Echo: " prefix
+            data = JSON.parse(jsonPart);
+            console.log('📤 OCAP parsed echo message:', data);
+          } else {
+            // Handle regular JSON messages
+            data = JSON.parse(messageText);
+          }
+          
+          console.log('📋 OCAP WebSocket parsed data:', data);
+          console.log('🎯 Message type:', data.type);
+          console.log('🔍 Active chat:', activeChat);
+          console.log('💬 Is OCAP active?', activeChat === 'ocap');
+          
+          // Handle assistant_response immediately when received (even before chat is active)
+          // This fixes the welcome message issue
+          if (data.type === 'assistant_response') {
+            console.log('🎉 Processing OCAP assistant_response:', data);
+            
+            const assistantMessage: Message = {
+              id: data.metadata?.connection_id || Date.now().toString(),
+              avatar: '/media/avatars/300-5.png',
+              text: data.content,
+              time: data.timestamp 
+                ? new Date(data.timestamp).toLocaleTimeString('en-US', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })
+                : new Date().toLocaleTimeString('en-US', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  }),
+              in: true,
+              sender: 'OCAP Agent'
+            };
+            
+            console.log('✅ Adding OCAP assistant message to chat:', assistantMessage);
+            setMessages(prev => [...prev, assistantMessage]);
+            scrollToBottom();
+            
+            // Auto-activate OCAP chat if not already active and join request was accepted
+            // OR if this is the welcome message (which means connection was just established)
+            if (!isChatActive && (joinRequestAccepted.ocap || data.content.includes('Welcome to Manufacturing Technical Support'))) {
+              console.log('🔄 Auto-activating OCAP chat due to assistant response');
+              setIsChatActive(true);
+              setActiveChat('ocap');
+              // Mark as accepted if this is the welcome message
+              if (!joinRequestAccepted.ocap) {
+                setJoinRequestAccepted(prev => ({ ...prev, ocap: true }));
+                setJoinRequests(prev => prev.filter(req => req.type !== 'ocap'));
+              }
+            }
+          }
+          // Only process other message types if OCAP chat is active
+          else if (activeChat === 'ocap') {
+            if (data.type === 'message') {
+              const newMessage: Message = {
+                id: data.id || Date.now().toString(),
+                avatar: data.avatar || '/media/avatars/300-5.png',
+                text: data.text,
+                time: new Date().toLocaleTimeString('en-US', { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                }),
+                in: true,
+                sender: data.sender || 'OCAP Agent'
+              };
+              
+              setMessages(prev => [...prev, newMessage]);
+              scrollToBottom();
+            } else if (data.type === 'typing') {
+              setIsTyping(data.isTyping);
+            } else if (data.type === 'system_message') {
+              // Handle system messages like "Agent is typing..."
+              const systemMessage: Message = {
+                id: Date.now().toString(),
+                avatar: '/media/avatars/300-5.png',
+                text: data.text,
+                time: new Date().toLocaleTimeString('en-US', { 
+                  hour: '2-digit', 
+                  minute: '2-digit' 
+                }),
+                in: true,
+                sender: 'System'
+              };
+              
+              setMessages(prev => [...prev, systemMessage]);
+              scrollToBottom();
+            }
+          }
+          
+          if (data.type === 'pong') {
+            console.log('Received OCAP pong response from server');
+          } else if (data.type === 'join_request_response') {
+            console.log('Received OCAP join request response:', data);
+          } else if (data.type !== 'message' && data.type !== 'assistant_response' && data.type !== 'typing' && data.type !== 'system_message') {
+            console.log('Unknown OCAP message type received:', data.type, data);
+          }
+        } catch (error) {
+          console.error('Error parsing OCAP WebSocket message:', error);
+          console.log('Raw message data:', event.data);
+        }
+      };
+
+      ws.onclose = (event) => {
+        console.log('OCAP WebSocket disconnected:', event.code, event.reason);
+        
+        // Add a system message when disconnected (only if OCAP chat is active)
+        if (activeChat === 'ocap') {
+          const disconnectMessage: Message = {
+            id: Date.now().toString(),
+            avatar: '/media/avatars/300-5.png',
+            text: `OCAP connection lost (Code: ${event.code}). Trying to reconnect...`,
+            time: new Date().toLocaleTimeString('en-US', { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            }),
+            in: true,
+            sender: 'System'
+          };
+          
+          setMessages(prev => [...prev, disconnectMessage]);
+        }
+        
+        // Try to reconnect after 5 seconds
+        setTimeout(() => {
+          console.log('Attempting to reconnect OCAP...');
+          connectOcapWebSocket();
+        }, 5000);
+      };
+
+      ws.onerror = (error) => {
+        console.error('OCAP WebSocket error:', error);
+      };
+
+      wsOcapRef.current = ws;
+    } catch (error) {
+      console.error('Error creating OCAP WebSocket connection:', error);
+    }
+  };
+
+  // WebSocket connections - only connect when sheet is opened
   useEffect(() => {
-    if (isOpen && !wsRef.current) {
-      connectWebSocket();
+    if (isOpen) {
+      // Connect to both services to get join requests, but don't activate chats
+      if (!wsDociqRef.current) {
+        connectDociqWebSocket();
+      }
+      if (!wsOcapRef.current) {
+        connectOcapWebSocket();
+      }
     }
 
     return () => {
-      if (wsRef.current) {
-        console.log('Closing WebSocket connection...');
-        wsRef.current.close();
+      if (wsDociqRef.current) {
+        console.log('Closing DocIQ WebSocket connection...');
+        wsDociqRef.current.close();
+      }
+      if (wsOcapRef.current) {
+        console.log('Closing OCAP WebSocket connection...');
+        wsOcapRef.current.close();
       }
     };
   }, [isOpen]);
@@ -270,129 +483,216 @@ export function ChatSheet({ trigger }: { trigger: ReactNode }) {
     }
   };
 
-  const handleAcceptJoinRequest = () => {
-    if (joinRequest && wsRef.current) {
-      console.log('Accepting join request, WebSocket state:', wsRef.current.readyState);
+  const handleAcceptJoinRequest = (request: JoinRequest) => {
+    const wsRef = request.type === 'dociq' ? wsDociqRef : wsOcapRef;
+    
+    if (request && wsRef.current) {
+      console.log(`Accepting ${request.type} join request, WebSocket state:`, wsRef.current.readyState);
       
       // Check WebSocket connection state
       if (wsRef.current.readyState === WebSocket.OPEN) {
-        console.log('WebSocket is OPEN, sending accept message...');
+        console.log(`${request.type} WebSocket is OPEN, sending accept message...`);
         
         // Send accept message to WebSocket
         try {
           wsRef.current.send(JSON.stringify({
             type: 'join_request_response',
-            requestId: joinRequest.id,
+            requestId: request.id,
             action: 'accept'
           }));
-          console.log('Join request accept message sent successfully');
+          console.log(`${request.type} join request accept message sent successfully`);
         } catch (error) {
-          console.error('Error sending join request accept:', error);
+          console.error(`Error sending ${request.type} join request accept:`, error);
         }
         
         setIsChatActive(true);
-        setJoinRequest(null);
-        setJoinRequestAccepted(true);
+        setActiveChat(request.type);
+        setJoinRequests(prev => prev.filter(req => req.id !== request.id));
+        setJoinRequestAccepted(prev => ({
+          ...prev,
+          [request.type]: true
+        }));
         
-        // Add welcome message
-        const welcomeMessage: Message = {
-          id: Date.now().toString(),
-      avatar: '/media/avatars/300-5.png',
-          text: `Hello! Welcome to the chat. How can I help you today?`,
-          time: new Date().toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          }),
-      in: true,
-          sender: 'Support Agent'
-        };
-        
-        setMessages([welcomeMessage]);
+        // For OCAP, don't add manual welcome message - server will send assistant_response
+        // For DocIQ, add manual welcome message as before
+        if (request.type === 'dociq') {
+          const welcomeMessage: Message = {
+            id: Date.now().toString(),
+            avatar: '/media/avatars/300-5.png',
+            text: `Hello! Welcome to the DocIQ chat. How can I help you today?`,
+            time: new Date().toLocaleTimeString('en-US', { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            }),
+            in: true,
+            sender: 'Support Agent'
+          };
+          
+          setMessages([welcomeMessage]);
+        } else {
+          // For OCAP, clear messages and wait for server's assistant_response
+          console.log('🎯 OCAP chat activated - waiting for server welcome message');
+          setMessages([]);
+        }
         
         // Test the connection by sending a ping message
         setTimeout(() => {
           if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-            console.log('Sending test ping message...');
+            console.log(`Sending test ping message to ${request.type}...`);
             try {
               wsRef.current.send(JSON.stringify({
                 type: 'ping',
                 timestamp: new Date().toISOString()
               }));
-              console.log('Ping message sent successfully');
+              console.log(`${request.type} ping message sent successfully`);
             } catch (error) {
-              console.error('Error sending ping:', error);
+              console.error(`Error sending ${request.type} ping:`, error);
             }
           } else {
-            console.error('WebSocket is not open for ping test');
+            console.error(`${request.type} WebSocket is not open for ping test`);
           }
         }, 1000);
         
       } else {
-        console.error('WebSocket is not open. State:', wsRef.current.readyState);
+        console.error(`${request.type} WebSocket is not open. State:`, wsRef.current.readyState);
         console.log('WebSocket states: CONNECTING=0, OPEN=1, CLOSING=2, CLOSED=3');
         
         // Try to reconnect
-        console.log('Attempting to reconnect WebSocket...');
+        console.log(`Attempting to reconnect ${request.type} WebSocket...`);
         if (wsRef.current) {
           wsRef.current.close();
         }
         setTimeout(() => {
-          connectWebSocket();
+          if (request.type === 'dociq') {
+            connectDociqWebSocket();
+          } else {
+            connectOcapWebSocket();
+          }
         }, 1000);
       }
     } else {
-      console.error('No join request or WebSocket reference available');
+      console.error(`No ${request.type} join request or WebSocket reference available`);
     }
   };
 
-  const handleDeclineJoinRequest = () => {
-    if (joinRequest && wsRef.current) {
+  const handleDeclineJoinRequest = (request: JoinRequest) => {
+    const wsRef = request.type === 'dociq' ? wsDociqRef : wsOcapRef;
+    
+    if (request && wsRef.current) {
       // Send decline message to WebSocket
       wsRef.current.send(JSON.stringify({
         type: 'join_request_response',
-        requestId: joinRequest.id,
+        requestId: request.id,
         action: 'decline'
       }));
       
-      setJoinRequest(null);
+      setJoinRequests(prev => prev.filter(req => req.id !== request.id));
     }
   };
 
   const handleSendMessage = () => {
-    if (emailInput.trim() && wsRef.current && isChatActive) {
-      const messageText = emailInput.trim();
-      const messageData = {
-        type: 'message',
-        text: messageText,
-        timestamp: new Date().toISOString()
-      };
+    console.log('handleSendMessage called with:', {
+      emailInput: emailInput.trim(),
+      isChatActive,
+      activeChat,
+      wsDociqState: wsDociqRef.current?.readyState,
+      wsOcapState: wsOcapRef.current?.readyState
+    });
+
+    if (emailInput.trim() && isChatActive && activeChat) {
+      const wsRef = activeChat === 'dociq' ? wsDociqRef : wsOcapRef;
       
-      console.log('Sending message to WebSocket:', messageData);
+      console.log(`Selected WebSocket for ${activeChat}:`, {
+        exists: !!wsRef.current,
+        readyState: wsRef.current?.readyState,
+        readyStateText: wsRef.current?.readyState === WebSocket.OPEN ? 'OPEN' : 
+                       wsRef.current?.readyState === WebSocket.CONNECTING ? 'CONNECTING' :
+                       wsRef.current?.readyState === WebSocket.CLOSING ? 'CLOSING' : 
+                       wsRef.current?.readyState === WebSocket.CLOSED ? 'CLOSED' : 'UNKNOWN'
+      });
       
-      const newMessage: Message = {
-        id: Date.now().toString(),
-      avatar: '/media/avatars/300-2.png',
-        text: messageText,
-        time: new Date().toLocaleTimeString('en-US', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        }),
-      out: true,
-      read: false,
-        sender: 'You'
-      };
-      
-      // Send message to WebSocket
-      try {
-        wsRef.current.send(JSON.stringify(messageData));
-        console.log('Message sent successfully');
-      } catch (error) {
-        console.error('Error sending message to WebSocket:', error);
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        const messageText = emailInput.trim();
+        
+        // Use different message formats for different chat types
+        let messageData;
+        if (activeChat === 'ocap') {
+          // Try OCAP format first - based on the assistant_response format, 
+          // the server might expect 'content' field
+          messageData = {
+            type: 'user_message',
+            content: messageText,
+            timestamp: new Date().toISOString()
+          };
+          
+          console.log('🎯 Using OCAP message format with "content" field');
+        } else {
+          // DocIQ format
+          messageData = {
+            type: 'message',
+            text: messageText,
+            timestamp: new Date().toISOString()
+          };
+          
+          console.log('🎯 Using DocIQ message format with "text" field');
+        }
+        
+        console.log(`Sending message to ${activeChat} WebSocket:`, messageData);
+        console.log(`WebSocket URL: ${activeChat === 'ocap' ? 'wss://api.consolidator-ai.site/api/v1/ocap/ocap-chat/ws' : 'wss://api.consolidator-ai.site/api/v1/dociq/extractions/ws'}`);
+        
+        const newMessage: Message = {
+          id: Date.now().toString(),
+          avatar: '/media/avatars/300-2.png',
+          text: messageText,
+          time: new Date().toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          out: true,
+          read: false,
+          sender: 'You'
+        };
+        
+        // Send message to WebSocket
+        try {
+          wsRef.current.send(JSON.stringify(messageData));
+          console.log(`✅ Message sent successfully to ${activeChat}:`, JSON.stringify(messageData));
+          
+          // Add a timeout to detect if we don't get a response
+          setTimeout(() => {
+            console.log(`⏰ 10 seconds passed since sending message to ${activeChat} - checking for response...`);
+          }, 10000);
+          
+        } catch (error) {
+          console.error(`❌ Error sending message to ${activeChat} WebSocket:`, error);
+        }
+        
+        setMessages(prev => [...prev, newMessage]);
+        setEmailInput('');
+        scrollToBottom();
+      } else {
+        console.error(`❌ WebSocket not ready for ${activeChat}:`, {
+          exists: !!wsRef.current,
+          readyState: wsRef.current?.readyState,
+          expected: WebSocket.OPEN
+        });
+        
+        // Try to reconnect if WebSocket is not open
+        if (!wsRef.current || wsRef.current.readyState === WebSocket.CLOSED) {
+          console.log(`🔄 Attempting to reconnect ${activeChat} WebSocket...`);
+          if (activeChat === 'ocap') {
+            connectOcapWebSocket();
+          } else {
+            connectDociqWebSocket();
+          }
+        }
       }
-      
-      setMessages(prev => [...prev, newMessage]);
-      setEmailInput('');
-      scrollToBottom();
+    } else {
+      console.log('❌ Message sending conditions not met:', {
+        hasText: !!emailInput.trim(),
+        isChatActive,
+        activeChat
+      });
     }
   };
 
@@ -435,7 +735,7 @@ export function ChatSheet({ trigger }: { trigger: ReactNode }) {
                     to="#"
                     className="text-sm font-semibold text-mono hover:text-blue-600 block truncate"
                   >
-                      Support Team
+                    {activeChat === 'dociq' ? 'Support Team' : 'OCAP Agent'}
                   </Link>
                     <div className="flex items-center gap-2">
                       <div className={cn(
@@ -443,7 +743,10 @@ export function ChatSheet({ trigger }: { trigger: ReactNode }) {
                         isConnected ? "bg-green-500" : "bg-red-500"
                       )} />
                   <span className="text-xs italic text-muted-foreground block truncate">
-                        {isTyping ? "Support agent is typing..." : (isConnected ? "Online" : "Offline")}
+                    {isTyping 
+                      ? `${activeChat === 'dociq' ? 'Support agent' : 'OCAP agent'} is typing...` 
+                      : (isConnected ? "Online" : "Offline")
+                    }
                   </span>
                     </div>
                 </div>
@@ -520,22 +823,24 @@ export function ChatSheet({ trigger }: { trigger: ReactNode }) {
         <div className="flex-1 overflow-hidden">
           <ScrollArea className="h-full">
             <div className="space-y-3.5 p-3 sm:p-5" ref={scrollAreaRef}>
-              {!isChatActive && !joinRequest && (
+              {!isChatActive && joinRequests.length === 0 && (
                 <div className="text-center py-8">
                   <div className="text-muted-foreground text-sm">
-                    Connecting to chat...
+                    Connecting to chat services...
                   </div>
                 </div>
               )}
 
-              {joinRequest && (
-                <div className="p-3 sm:p-4 bg-accent/50 flex gap-2 border border-border rounded-lg">
+              {joinRequests.map((request) => (
+                <div key={request.id} className="p-3 sm:p-4 bg-accent/50 flex gap-2 border border-border rounded-lg">
                   <Avatar className="size-9 flex-shrink-0">
                     <AvatarImage
-                      src={toAbsoluteUrl(joinRequest.avatar)}
+                      src={toAbsoluteUrl(request.avatar)}
                       alt=""
                     />
-                    <AvatarFallback>JP</AvatarFallback>
+                    <AvatarFallback>
+                      {request.type === 'dociq' ? 'JP' : 'OA'}
+                    </AvatarFallback>
                     <AvatarIndicator className="-end-2 -bottom-2">
                       <AvatarStatus variant="online" className="size-2.5" />
                     </AvatarIndicator>
@@ -547,14 +852,14 @@ export function ChatSheet({ trigger }: { trigger: ReactNode }) {
                           to="#"
                           className="font-semibold text-mono hover:text-primary truncate"
                         >
-                          {joinRequest.name}
+                          {request.name}
                         </Link>
                         <span className="text-muted-foreground">
-                          wants to join chat
+                          wants to join {request.type.toUpperCase()} chat
                         </span>
                       </div>
                       <span className="text-xs text-muted-foreground truncate">
-                        {joinRequest.timestamp} • {joinRequest.team}
+                        {request.timestamp} • {request.team}
                       </span>
                     </div>
                     <div className="flex gap-1 sm:gap-2 flex-shrink-0">
@@ -562,7 +867,7 @@ export function ChatSheet({ trigger }: { trigger: ReactNode }) {
                         size="sm" 
                         variant="outline" 
                         className="text-xs sm:text-sm"
-                        onClick={handleDeclineJoinRequest}
+                        onClick={() => handleDeclineJoinRequest(request)}
                       >
                         Decline
                       </Button>
@@ -570,14 +875,14 @@ export function ChatSheet({ trigger }: { trigger: ReactNode }) {
                         size="sm" 
                         variant="mono" 
                         className="text-xs sm:text-sm"
-                        onClick={handleAcceptJoinRequest}
+                        onClick={() => handleAcceptJoinRequest(request)}
                       >
                         Accept
                       </Button>
                     </div>
                   </div>
                 </div>
-              )}
+              ))}
 
               {isChatActive && messages.map((message) =>
             message.out ? (

@@ -3,88 +3,67 @@ import { SupabaseAdapter } from '@/auth/adapters/supabase-adapter';
 import { AuthContext } from '@/auth/context/auth-context';
 import * as authHelper from '@/auth/lib/helpers';
 import { AuthModel, UserModel } from '@/auth/lib/models';
+import { AuthApiService } from '@/auth/services/auth-api';
 
-// Mock data for bypassing authentication
-const mockAuth: AuthModel = {
-  access_token: "mock-access-token-bypass-auth",
-  refresh_token: "mock-refresh-token-bypass-auth"
-};
-
-const mockUser: UserModel = {
-  username: "demo",
-  email: "@masholdings.com",
-  first_name: "Demo",
-  last_name: "User",
-  fullname: "Malaka Gunawardena",
-  email_verified: true,
-  occupation: "Developer",
-  company_name: "Demo Company",
-  phone: "+1234567890",
-  roles: [1, 2],
-  pic: "",
-  language: "en",
-  is_admin: true,
-};
-
-// Define the Supabase Auth Provider
+// Define the Auth Provider with real API integration
 export function AuthProvider({ children }: PropsWithChildren) {
-  // const [loading, setLoading] = useState(true);
-  // const [auth, setAuth] = useState<AuthModel | undefined>(authHelper.getAuth());
-  // const [currentUser, setCurrentUser] = useState<UserModel | undefined>();
-  // const [isAdmin, setIsAdmin] = useState(false);
-
-  // Bypass authentication - always provide authenticated state
-  const [loading, setLoading] = useState(false); // Set to false to skip loading
-  const [auth, setAuth] = useState<AuthModel | undefined>(mockAuth); // Always provide mock auth
-  const [currentUser, setCurrentUser] = useState<UserModel | undefined>(mockUser); // Always provide mock user
-  const [isAdmin, setIsAdmin] = useState(true); // Always admin
+  const [loading, setLoading] = useState(true);
+  const [auth, setAuth] = useState<AuthModel | undefined>(authHelper.getAuth());
+  const [currentUser, setCurrentUser] = useState<UserModel | undefined>();
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Check if user is admin
   useEffect(() => {
-    // setIsAdmin(currentUser?.is_admin === true);
-    setIsAdmin(true); // Always admin
+    setIsAdmin(currentUser?.is_admin === true);
   }, [currentUser]);
 
+  // Initialize auth state on mount
+  useEffect(() => {
+    const initializeAuth = async () => {
+      const existingAuth = authHelper.getAuth();
+      if (existingAuth) {
+        setAuth(existingAuth);
+        // TODO: Verify token is still valid and get user info
+        // For now, we'll assume the token is valid
+      }
+      setLoading(false);
+    };
+
+    initializeAuth();
+  }, []);
+
   const verify = async () => {
-    // if (auth) {
-    //   try {
-    //     const user = await getUser();
-    //     setCurrentUser(user || undefined);
-    //   } catch {
-    //     saveAuth(undefined);
-    //     setCurrentUser(undefined);
-    //   }
-    // }
-    
-    // Bypass verification - always succeed
-    console.log('Auth verification bypassed - always authenticated');
+    if (auth) {
+      try {
+        // TODO: Implement token verification with the API
+        // For now, we'll assume the token is valid
+        console.log('Token verification not implemented yet');
+      } catch {
+        saveAuth(undefined);
+        setCurrentUser(undefined);
+      }
+    }
   };
 
   const saveAuth = (auth: AuthModel | undefined) => {
-    // setAuth(auth);
-    // if (auth) {
-    //   authHelper.setAuth(auth);
-    // } else {
-    //   authHelper.removeAuth();
-    // }
-    
-    // Bypass auth saving - keep mock auth
-    console.log('Auth saving bypassed - keeping mock auth');
+    setAuth(auth);
+    if (auth) {
+      authHelper.setAuth(auth);
+    } else {
+      authHelper.removeAuth();
+    }
   };
 
-  const login = async (email: string, password: string) => {
-    // try {
-    //   const auth = await SupabaseAdapter.login(email, password);
-    //   saveAuth(auth);
-    //   const user = await getUser();
-    //   setCurrentUser(user || undefined);
-    // } catch (error) {
-    //   saveAuth(undefined);
-    //   throw error;
-    // }
-    
-    // Bypass login - always succeed
-    console.log('Login bypassed - always authenticated');
+  const login = async (username: string, password: string) => {
+    try {
+      const result = await AuthApiService.login(username, password);
+      saveAuth(result.auth);
+      setCurrentUser(result.user);
+    } catch (error) {
+      saveAuth(undefined);
+      setCurrentUser(undefined);
+      throw error;
+    }
   };
 
   const register = async (
@@ -94,60 +73,51 @@ export function AuthProvider({ children }: PropsWithChildren) {
     firstName?: string,
     lastName?: string,
   ) => {
-    // try {
-    //   const auth = await SupabaseAdapter.register(
-    //     email,
-    //     password,
-    //     password_confirmation,
-    //     firstName,
-    //     lastName,
-    //   );
-    //   saveAuth(auth);
-    //   const user = await getUser();
-    //   setCurrentUser(user || undefined);
-    // } catch (error) {
-    //   saveAuth(undefined);
-    //   throw error;
-    // }
-    
-    // Bypass register - always succeed
-    console.log('Register bypassed - always authenticated');
+    // TODO: Implement registration with the API when available
+    throw new Error('Registration is not yet implemented');
   };
 
   const requestPasswordReset = async (email: string) => {
-    // await SupabaseAdapter.requestPasswordReset(email);
-    console.log('Password reset bypassed');
+    // TODO: Implement password reset with the API when available
+    throw new Error('Password reset is not yet implemented');
   };
 
   const resetPassword = async (
     password: string,
     password_confirmation: string,
   ) => {
-    // await SupabaseAdapter.resetPassword(password, password_confirmation);
-    console.log('Password reset bypassed');
+    // TODO: Implement password reset with the API when available
+    throw new Error('Password reset is not yet implemented');
   };
 
   const resendVerificationEmail = async (email: string) => {
-    // await SupabaseAdapter.resendVerificationEmail(email);
-    console.log('Verification email bypassed');
+    // TODO: Implement email verification with the API when available
+    throw new Error('Email verification is not yet implemented');
   };
 
   const getUser = async () => {
-    // return await SupabaseAdapter.getCurrentUser();
-    return mockUser; // Always return mock user
+    // TODO: Implement get user with the API when available
+    return currentUser || null;
   };
 
   const updateProfile = async (userData: Partial<UserModel>) => {
-    // return await SupabaseAdapter.updateUserProfile(userData);
-    console.log('Profile update bypassed');
-    return mockUser; // Always return mock user
+    // TODO: Implement profile update with the API when available
+    throw new Error('Profile update is not yet implemented');
   };
 
-  const logout = () => {
-    // SupabaseAdapter.logout();
-    // saveAuth(undefined);
-    // setCurrentUser(undefined);
-    console.log('Logout bypassed - staying authenticated');
+  const logout = async () => {
+    try {
+      // Call API logout if we have an auth token
+      if (auth?.access_token) {
+        await AuthApiService.logout(auth.access_token);
+      }
+    } catch (error) {
+      console.warn('Error during API logout:', error);
+    } finally {
+      // Always clear local auth state
+      saveAuth(undefined);
+      setCurrentUser(undefined);
+    }
   };
 
   return (

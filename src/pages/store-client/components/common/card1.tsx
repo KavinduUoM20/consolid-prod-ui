@@ -13,13 +13,13 @@ export function Card1() {
   const { showProductDetailsSheet } = useStoreClient();
 
   const items: ICard1Items = [
-    { logo: '1.png', brand: 'Nike' },
-    { logo: '2.png', brand: 'Adidas' },
-    { logo: '3.png', brand: 'Puma' },
-    { logo: '4.png', brand: 'New Balance' },
-    { logo: '5.png', brand: 'Converse' },
-    { logo: '6.png', brand: 'Reebok' },
-    { logo: '7.png', brand: 'Sketchers' },
+    { logo: 'rmds-agent.png', brand: 'RMDS Agent' },
+    { logo: 'scnews-agent.png', brand: 'SCNews Agent' },
+    { logo: 'ocap-chat.png', brand: 'OCAP Chat' },
+    { logo: 'ai-analytics.png', brand: 'AI Analytics' },
+    { logo: 'smart-insights.png', brand: 'Smart Insights' },
+    { logo: 'data-processor.png', brand: 'Data Processor' },
+    { logo: 'ml-assistant.png', brand: 'ML Assistant' },
   ];
 
   const renderItem = (item: ICard1Item, index: number) => (
