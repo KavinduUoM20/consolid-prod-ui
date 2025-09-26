@@ -1,9 +1,5 @@
 import {
-  Deals,
   FeaturedProducts,
-  Info,
-  NewArrivals,
-  PopularSneakers,
   Search,
   SpecialOffers,
 } from './components';
@@ -14,10 +10,6 @@ export function StoreClientContent() {
       <Search />
       <FeaturedProducts />
       <SpecialOffers />
-      <NewArrivals />
-      <PopularSneakers />
-      <Deals />
-      <Info />
     </div>
   );
 }
