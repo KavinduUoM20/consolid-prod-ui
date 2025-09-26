@@ -2,10 +2,9 @@ import { z } from 'zod';
 
 export const getSigninSchema = () => {
   return z.object({
-    email: z
+    username: z
       .string()
-      .email({ message: 'Please enter a valid email address.' })
-      .min(1, { message: 'Email is required.' }),
+      .min(1, { message: 'Username is required.' }),
     password: z.string().min(1, { message: 'Password is required.' }),
     rememberMe: z.boolean().optional(),
   });

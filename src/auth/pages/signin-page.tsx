@@ -74,7 +74,7 @@ export function SignInPage() {
   const form = useForm<SigninSchemaType>({
     resolver: zodResolver(getSigninSchema()),
     defaultValues: {
-      email: 'demo@kt.com',
+      username: 'consolidadmin',
       password: 'demo123',
       rememberMe: true,
     },
@@ -85,16 +85,16 @@ export function SignInPage() {
       setIsProcessing(true);
       setError(null);
 
-      console.log('Attempting to sign in with email:', values.email);
+      console.log('Attempting to sign in with username:', values.username);
 
       // Simple validation
-      if (!values.email.trim() || !values.password) {
-        setError('Email and password are required');
+      if (!values.username.trim() || !values.password) {
+        setError('Username and password are required');
         return;
       }
 
       // Sign in using the auth context
-      await login(values.email, values.password);
+      await login(values.username, values.password);
 
       // Get the 'next' parameter from URL if it exists
       const nextPath = searchParams.get('next') || '/dashboard';
@@ -162,7 +162,7 @@ export function SignInPage() {
             <AlertCircle className="text-primary" />
           </AlertIcon>
           <AlertTitle className="text-accent-foreground">
-            Use <strong>demo@kt.com</strong> username and {` `}
+            Use <strong>consolidadmin</strong> username and {` `}
             <strong>demo123</strong> password for demo access.
           </AlertTitle>
         </Alert>
@@ -220,12 +220,12 @@ export function SignInPage() {
 
         <FormField
           control={form.control}
-          name="email"
+          name="username"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Email</FormLabel>
+              <FormLabel>Username</FormLabel>
               <FormControl>
-                <Input placeholder="Your email" {...field} />
+                <Input placeholder="Your username" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
