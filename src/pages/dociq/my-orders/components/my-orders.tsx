@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,17 +18,14 @@ const createTemplateSchema = z.object({
 });
 
 type CreateTemplateFormValues = z.infer<typeof createTemplateSchema>;
-import { Alert, AlertIcon, AlertTitle } from '@/components/ui/alert';
-import { RiCheckboxCircleFill, RiDeleteBin6Line, RiArrowLeftLine, RiSaveLine, RiAddLine, RiSettings3Line, RiEditLine, RiCloseLine } from '@remixicon/react';
+import { RiDeleteBin6Line, RiArrowLeftLine, RiSaveLine, RiAddLine, RiSettings3Line, RiEditLine } from '@remixicon/react';
 import { toast } from 'sonner';
-import { useTemplates, transformApiTemplateToItem } from '../../extractions/hooks/use-templates';
+import { useTemplates, useTemplateById, transformApiTemplateToItem } from '../../extractions/hooks/use-templates';
 import { useTemplateCreation } from '../../extractions/hooks/use-template-creation';
 import { useTemplateDeletion } from '../../extractions/hooks/use-template-deletion';
-import { FileText, Plus, Settings, Grid3X3, List, Search, Filter, MoreVertical, Eye, EyeOff, Lock, Unlock, Edit3, X, Minus } from 'lucide-react';
+import { FileText, Plus, Settings, Grid3X3, List, Search, Eye, EyeOff, Lock, Unlock, Edit3, X, Minus } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -64,8 +61,8 @@ interface FieldMapping {
 
 export function MyOrders() {
   // Use the API hook to fetch templates
-  const { data: apiTemplates } = useTemplates();
-  const { createTemplate, isCreating } = useTemplateCreation();
+  const { data: apiTemplates, refetch: refetchTemplates } = useTemplates();
+  const { isCreating } = useTemplateCreation();
   const { deleteTemplate, isDeleting } = useTemplateDeletion();
   
   // Transform API templates to component format
@@ -74,7 +71,12 @@ export function MyOrders() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
+  const [isEditingTemplate, setIsEditingTemplate] = useState(false);
+  const [isUpdatingTemplate, setIsUpdatingTemplate] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<ITemplateItem | null>(null);
+  
+  // Hook to fetch individual template for editing
+  const { data: templateData, isLoading: isLoadingTemplate, error: templateError } = useTemplateById(selectedTemplate?.id || null);
   
   // Enterprise features
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
@@ -115,6 +117,23 @@ export function MyOrders() {
       setItems(transformedTemplates);
     }
   }, [apiTemplates]);
+
+  // Populate field mappings when template data is loaded for editing
+  useEffect(() => {
+    if (templateData && templateData.field_mappings && templateData.field_mappings.length > 0) {
+      const mappedFields = templateData.field_mappings.map((mapping, index) => ({
+        id: (index + 1).toString(),
+        plmField: mapping.target_field || '',
+        similarFieldNames: mapping.sample_field_names || [],
+        sampleValues: mapping.value_patterns || [],
+        description: mapping.description || '',
+      }));
+      setFieldMappings(mappedFields);
+    } else if (templateData && (!templateData.field_mappings || templateData.field_mappings.length === 0)) {
+      // If template has no field mappings, start with one empty mapping
+      setFieldMappings([{ id: '1', plmField: '', similarFieldNames: [], sampleValues: [], description: '' }]);
+    }
+  }, [templateData]);
 
   // react-hook-form for creating new template
   const form = useForm<CreateTemplateFormValues>({
@@ -159,7 +178,7 @@ export function MyOrders() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const result = await response.json();
+      await response.json();
       
       toast.success('Template created successfully!');
       setIsCreatingTemplate(false);
@@ -170,7 +189,7 @@ export function MyOrders() {
       if (apiTemplates) {
         // Add the new template to the list
         const newTemplate = {
-          id: result.id || Date.now().toString(),
+          id: Date.now().toString(),
           default: false,
           title: data.title,
           department: data.department,
@@ -184,6 +203,114 @@ export function MyOrders() {
     } catch (error) {
       console.error('Error creating template:', error);
       toast.error('Failed to create template. Please try again.');
+    }
+  };
+
+  const handleUpdateTemplate = async (data: CreateTemplateFormValues) => {
+    if (!selectedTemplate?.id) {
+      toast.error('No template selected for editing');
+      return;
+    }
+
+    setIsUpdatingTemplate(true);
+    try {
+      // Map form data to API request body structure
+      const requestBody = {
+        name: data.title,
+        type: "pdf",
+        category: data.department,
+        description: data.description,
+        field_mappings: fieldMappings.map(mapping => ({
+          target_field: mapping.plmField,
+          sample_field_names: mapping.similarFieldNames,
+          value_patterns: mapping.sampleValues,
+          required: true
+        }))
+      };
+
+      // Use the same URL pattern as the fetch function for consistency
+      const apiUrl = import.meta.env.DEV 
+        ? `/api/dociq/templates/${selectedTemplate.id}`
+        : `https://api.consolidator-ai.site/api/v1/dociq/templates/${selectedTemplate.id}`;
+
+      console.log('Updating template at:', apiUrl);
+      console.log('Request body:', requestBody);
+
+      // Send request to the API endpoint for updating
+      const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          // Add any required authentication headers here
+          // 'Authorization': 'Bearer your-token'
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      console.log('Update response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
+        
+        if (response.status === 404) {
+          throw new Error('Template not found. It may have been deleted.');
+        } else if (response.status === 403) {
+          throw new Error('Access denied. Please check your permissions.');
+        } else {
+          throw new Error(`Failed to update template: ${response.status} ${response.statusText}`);
+        }
+      }
+
+      const result = await response.json();
+      console.log('Update response data:', result);
+      
+      toast.success('Template updated successfully!');
+      
+      // Update the template in the local list
+      setItems(prev => prev.map(item => 
+        item.id === selectedTemplate.id 
+          ? {
+              ...item,
+              title: data.title,
+              department: data.department,
+              description: data.description,
+              fields: fieldMappings.length,
+              lastUsed: new Date().toLocaleDateString(),
+              status: 'Active', // Ensure status is set
+            }
+          : item
+      ));
+      
+      // Refetch templates to ensure data consistency
+      try {
+        await refetchTemplates();
+      } catch (refetchError) {
+        console.warn('Failed to refetch templates after update:', refetchError);
+        // Don't show error to user as the update was successful
+      }
+      
+      // Reset form and exit editing mode first (switches to default view)
+      setIsEditingTemplate(false);
+      setSelectedTemplate(null);
+      form.reset();
+      setFieldMappings([{ id: '1', plmField: '', similarFieldNames: [], sampleValues: [], description: '' }]);
+      
+      // Refetch templates to ensure data consistency after switching back to default view
+      try {
+        await refetchTemplates();
+        console.log('Templates refreshed successfully after update');
+      } catch (refetchError) {
+        console.warn('Failed to refresh templates after update:', refetchError);
+        // Don't show error to user as the update was successful
+      }
+      
+    } catch (error) {
+      console.error('Error updating template:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update template. Please try again.';
+      toast.error(errorMessage);
+    } finally {
+      setIsUpdatingTemplate(false);
     }
   };
 
@@ -203,8 +330,28 @@ export function MyOrders() {
   };
 
   const handleEditTemplate = (template: ITemplateItem) => {
-    // TODO: Implement edit functionality
-    toast.info('Edit functionality coming soon!');
+    setSelectedTemplate(template);
+    setIsEditingTemplate(true);
+    
+    // Pre-populate form with template data
+    form.reset({
+      title: template.title,
+      department: template.department,
+      description: template.description,
+    });
+    
+    // Reset field mappings to default state - will be populated by useEffect when template data loads
+    setFieldMappings([{ id: '1', plmField: '', similarFieldNames: [], sampleValues: [], description: '' }]);
+  };
+
+  const handleBackToTemplates = () => {
+    // Reset editing state
+    setIsEditingTemplate(false);
+    setSelectedTemplate(null);
+    form.reset();
+    setFieldMappings([{ id: '1', plmField: '', similarFieldNames: [], sampleValues: [], description: '' }]);
+    
+    // Note: No refresh here since update operations handle their own refresh
   };
 
   const updateFieldConfig = (index: number, field: keyof FieldConfig, value: any) => {
@@ -435,7 +582,7 @@ export function MyOrders() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setIsCreatingTemplate(false)}
+              onClick={handleBackToTemplates}
               className="gap-2"
             >
               <RiArrowLeftLine className="h-4 w-4" />
@@ -780,6 +927,448 @@ export function MyOrders() {
                     <Button type="submit" disabled={isCreating} className="gap-2">
                       <RiSaveLine className="h-4 w-4" />
                       {isCreating ? 'Creating...' : 'Create Template'}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isEditingTemplate) {
+    // Show loading state while fetching template data
+    if (isLoadingTemplate) {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBackToTemplates}
+                className="gap-2"
+              >
+                <RiArrowLeftLine className="h-4 w-4" />
+                Back to Templates
+              </Button>
+              <Separator orientation="vertical" className="h-6" />
+              <div>
+                <h1 className="text-xl font-semibold text-mono">Edit Template</h1>
+                <p className="text-sm text-secondary-foreground">Loading template data...</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-sm text-muted-foreground">Loading template configuration...</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Show error state if template fetch failed
+    if (templateError) {
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleBackToTemplates}
+                className="gap-2"
+              >
+                <RiArrowLeftLine className="h-4 w-4" />
+                Back to Templates
+              </Button>
+              <Separator orientation="vertical" className="h-6" />
+              <div>
+                <h1 className="text-xl font-semibold text-mono">Edit Template</h1>
+                <p className="text-sm text-secondary-foreground">Error loading template</p>
+              </div>
+            </div>
+          </div>
+          <Card className="border-destructive">
+            <CardContent className="p-6">
+              <div className="text-center">
+                <div className="text-destructive mb-2">
+                  <X className="h-8 w-8 mx-auto" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Failed to Load Template</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {templateError instanceof Error ? templateError.message : 'An error occurred while loading the template data.'}
+                </p>
+                <Button
+                  onClick={handleBackToTemplates}
+                  variant="outline"
+                >
+                  Back to Templates
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleBackToTemplates}
+              className="gap-2"
+            >
+              <RiArrowLeftLine className="h-4 w-4" />
+              Back to Templates
+            </Button>
+            <Separator orientation="vertical" className="h-6" />
+            <div>
+              <h1 className="text-xl font-semibold text-mono">Edit Template</h1>
+              <p className="text-sm text-secondary-foreground">Modify the template configuration</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}
+              className="gap-2"
+            >
+              <RiSettings3Line className="h-4 w-4" />
+              Advanced Settings
+            </Button>
+          </div>
+        </div>
+
+        {/* Advanced Settings Panel */}
+        {showAdvancedSettings && (
+          <Card className="border-l-4 border-l-primary">
+            <CardHeader>
+              <CardTitle className="text-lg">Advanced Configuration</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Template Visibility</Label>
+                    <RadioGroup value={templateVisibility} onValueChange={(value: 'public' | 'private') => setTemplateVisibility(value)}>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="public" id="edit-public" />
+                        <Label htmlFor="edit-public" className="text-sm">Public</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="private" id="edit-private" />
+                        <Label htmlFor="edit-private" className="text-sm">Private</Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Auto Save</Label>
+                    <Switch checked={autoSave} onCheckedChange={setAutoSave} />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium">Enable Validation</Label>
+                    <Switch checked={enableValidation} onCheckedChange={setEnableValidation} />
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <h4 className="font-medium text-sm">Field Configuration</h4>
+                  <div className="space-y-3">
+                    {fieldConfigs.map((config, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm font-medium capitalize">{config.name}</span>
+                          <Badge variant="secondary" className="text-xs">{config.type}</Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => updateFieldConfig(index, 'required', !config.required)}
+                                  className={config.required ? 'text-primary' : 'text-muted-foreground'}
+                                >
+                                  {config.required ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {config.required ? 'Required' : 'Optional'}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => updateFieldConfig(index, 'visible', !config.visible)}
+                                  className={config.visible ? 'text-primary' : 'text-muted-foreground'}
+                                >
+                                  {config.visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {config.visible ? 'Visible' : 'Hidden'}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Main Content - 70/30 Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
+          {/* Field Mapping Section - 70% */}
+          <div className="lg:col-span-7">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Field Mapping Configuration
+                </CardTitle>
+                <p className="text-sm text-secondary-foreground">
+                  Map PLM fields to vendor fields and define sample values for extraction
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Field Mapping Rows */}
+                {fieldMappings.map((mapping, index) => (
+                  <div key={mapping.id} className="border rounded-lg p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium text-sm">Field Mapping {index + 1}</h4>
+                      {fieldMappings.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFieldMapping(mapping.id)}
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                      {/* PLM Field */}
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium">PLM Field</Label>
+                        <Input
+                          placeholder="PLM field"
+                          value={mapping.plmField}
+                          onChange={(e) => updateFieldMapping(mapping.id, 'plmField', e.target.value)}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+
+                      {/* Similar Field Names */}
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium">Similar Field Names</Label>
+                        <div className="space-y-1">
+                          <div className="relative">
+                            <Input
+                              placeholder="Add similar field"
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                  addSimilarFieldName(mapping.id, e.currentTarget.value);
+                                  e.currentTarget.value = '';
+                                }
+                              }}
+                              className="h-8 text-sm pr-8"
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                                addSimilarFieldName(mapping.id, input.value);
+                                input.value = '';
+                              }}
+                              className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0 bg-primary text-primary-foreground hover:bg-primary/90"
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          <div className="flex flex-wrap gap-1 max-h-12 overflow-y-auto">
+                            {mapping.similarFieldNames.map((field, fieldIndex) => (
+                              <Badge key={fieldIndex} variant="secondary" size="sm" className="gap-1 text-xs">
+                                {field}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeSimilarFieldName(mapping.id, fieldIndex)}
+                                  className="h-3 w-3 p-0 hover:bg-transparent"
+                                >
+                                  <X className="h-2 w-2" />
+                                </Button>
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Sample Values */}
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium">Sample Values</Label>
+                        <div className="space-y-1">
+                          <div className="relative">
+                            <Input
+                              placeholder="Add sample value"
+                              onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                  addSampleValue(mapping.id, e.currentTarget.value);
+                                  e.currentTarget.value = '';
+                                }
+                              }}
+                              className="h-8 text-sm pr-8"
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                                addSampleValue(mapping.id, input.value);
+                                input.value = '';
+                              }}
+                              className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0 bg-primary text-primary-foreground hover:bg-primary/90"
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          <div className="flex flex-wrap gap-1 max-h-12 overflow-y-auto">
+                            {mapping.sampleValues.map((value, valueIndex) => (
+                              <Badge key={valueIndex} variant="secondary" size="sm" className="gap-1 text-xs">
+                                {value}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeSampleValue(mapping.id, valueIndex)}
+                                  className="h-3 w-3 p-0 hover:bg-transparent"
+                                >
+                                  <X className="h-2 w-2" />
+                                </Button>
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <div className="space-y-1">
+                        <Label className="text-xs font-medium">Description</Label>
+                        <Input
+                          placeholder="Description"
+                          value={mapping.description}
+                          onChange={(e) => updateFieldMapping(mapping.id, 'description', e.target.value)}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Add New Field Mapping Button */}
+                <Button
+                  variant="secondary"
+                  onClick={addFieldMapping}
+                  className="w-full gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Field Mapping
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Template Details Section - 30% */}
+          <div className="lg:col-span-3">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <RiEditLine className="h-5 w-5" />
+                  Edit Template Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={form.handleSubmit(handleUpdateTemplate)} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-title">Template Title</Label>
+                    <Input
+                      id="edit-title"
+                      {...form.register('title')}
+                      placeholder="e.g., Invoice Template"
+                    />
+                    {form.formState.errors.title && (
+                      <p className="text-sm text-destructive">
+                        {form.formState.errors.title.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-department">Department</Label>
+                    <Input
+                      id="edit-department"
+                      {...form.register('department')}
+                      placeholder="e.g., Finance, HR"
+                    />
+                    {form.formState.errors.department && (
+                      <p className="text-sm text-destructive">
+                        {form.formState.errors.department.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-description">Description</Label>
+                    <Textarea
+                      id="edit-description"
+                      {...form.register('description')}
+                      placeholder="Describe what this template is used for..."
+                      rows={3}
+                      className="resize-none"
+                    />
+                    {form.formState.errors.description && (
+                      <p className="text-sm text-destructive">
+                        {form.formState.errors.description.message}
+                      </p>
+                    )}
+                  </div>
+
+                  <Separator />
+
+                  <div className="flex items-center justify-between">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleBackToTemplates}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={isUpdatingTemplate} className="gap-2">
+                      <RiSaveLine className="h-4 w-4" />
+                      {isUpdatingTemplate ? 'Updating...' : 'Update Template'}
                     </Button>
                   </div>
                 </form>
