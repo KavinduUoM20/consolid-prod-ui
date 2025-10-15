@@ -117,6 +117,68 @@ export function useTemplates() {
   });
 }
 
+async function fetchTemplateById(id: string): Promise<ApiTemplate> {
+  try {
+    const apiUrl = getApiUrl();
+    const templateUrl = `${apiUrl}/${id}`;
+    console.log('Fetching template by ID from:', templateUrl);
+    
+    const response = await fetch(templateUrl, {
+      method: 'GET',
+    });
+    
+    console.log('Template fetch response status:', response.status);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('API Error Response for template fetch:', errorText);
+      
+      if (response.status === 404) {
+        throw new Error('Template not found. Please check if the template ID is correct.');
+      } else if (response.status === 403) {
+        throw new Error('Access denied. Please check your authentication.');
+      } else {
+        throw new Error(`Failed to fetch template: ${response.status} ${response.statusText}`);
+      }
+    }
+    
+    const data = await response.json();
+    console.log('Template API Response data:', data);
+    return data;
+  } catch (error) {
+    console.error('Error fetching template by ID:', error);
+    
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error('Network error: Unable to connect to the server. This might be due to CORS restrictions or network connectivity issues.');
+    }
+    
+    if (error instanceof TypeError && error.message.includes('Mixed Content')) {
+      throw new Error('Mixed Content Error: The page is loaded over HTTPS but trying to access an insecure resource. Please ensure the API endpoint uses HTTPS.');
+    }
+    
+    throw error;
+  }
+}
+
+export function useTemplateById(id: string | null) {
+  return useQuery({
+    queryKey: ['template', id],
+    queryFn: () => fetchTemplateById(id!),
+    enabled: !!id, // Only run query if id is provided
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    refetchOnReconnect: false,
+    retry: (failureCount, error) => {
+      if (error instanceof Error && error.message.includes('4')) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+}
+
 // Helper function to transform API template to component template
 export function transformApiTemplateToItem(apiTemplate: ApiTemplate, isDefault: boolean = false): TemplateItem {
   return {
