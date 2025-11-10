@@ -24,7 +24,7 @@ export function UploadDocumentPage() {
   const [selectedMaterialType, setSelectedMaterialType] = useState<string>('');
 
   const clusters = ['LINEA AQUA', 'ACTIVE', 'LINEA INTOMO', 'BODYLINE', 'KREEDA'];
-  const customers = ['Abercrombie & Fitch', 'Adore Me', 'Alo Yoga', 'Amante', 'Anta', 'MAS Innovation', 'Nike', 'Patagonia'];
+  const customers = ['Abercrombie & Fitch', 'Adore Me', 'Alo Yoga', 'Amante', 'Anta', 'MAS Innovation', 'Nike', 'Patagonia','Gym Shark', 'Arcteryx'];
   const materialTypes = ['Yarn', 'Fabric', 'Accessories', 'Packaging', 'Embellishment', 'Emb. Sub Material'];
 
   return (
